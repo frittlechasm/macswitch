@@ -1,0 +1,67 @@
+import AppKit
+
+final class StatusBarController: NSObject {
+    private let statusItem: NSStatusItem
+    private let permissionService: AccessibilityPermissionService
+    private weak var sessionController: SwitcherSessionController?
+    private let permissionStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+
+    init(permissionService: AccessibilityPermissionService, sessionController: SwitcherSessionController) {
+        self.permissionService = permissionService
+        self.sessionController = sessionController
+        self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+
+        super.init()
+        configure()
+    }
+
+    private func configure() {
+        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.2.swap", accessibilityDescription: "App Switcher")
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Show Switcher", action: #selector(showSwitcher), keyEquivalent: ""))
+        menu.addItem(permissionStatusItem)
+        menu.addItem(NSMenuItem(title: "Request Accessibility Permission", action: #selector(requestAccessibilityPermission), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Open Accessibility Settings", action: #selector(openAccessibilitySettings), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+
+        for item in menu.items {
+            item.target = self
+        }
+
+        menu.delegate = self
+        statusItem.menu = menu
+        refreshPermissionStatus()
+    }
+
+    @objc private func showSwitcher() {
+        sessionController?.handleSwitcherShortcut()
+    }
+
+    @objc private func requestAccessibilityPermission() {
+        permissionService.requestTrustPrompt()
+        refreshPermissionStatus()
+    }
+
+    @objc private func openAccessibilitySettings() {
+        permissionService.openAccessibilitySettings()
+    }
+
+    @objc private func quit() {
+        NSApplication.shared.terminate(nil)
+    }
+
+    private func refreshPermissionStatus() {
+        permissionStatusItem.title = permissionService.isTrusted
+            ? "Accessibility: Granted"
+            : "Accessibility: Not Granted"
+        permissionStatusItem.isEnabled = false
+    }
+}
+
+extension StatusBarController: NSMenuDelegate {
+    func menuWillOpen(_ menu: NSMenu) {
+        refreshPermissionStatus()
+    }
+}

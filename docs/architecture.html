@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App Switcher Architecture Report</title>
+  <style>
+:root {
+  --bg: #000;
+  --text: #f5f5f5;
+  --muted: #b7b7b7;
+  --faint: #777;
+  --line: #2a2a2a;
+  --code-bg: #090909;
+  --code: #d8d8d8;
+  --link: #8ab4ff;
+  --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--text); font-family: var(--sans); }
+body { margin: 0; background: var(--bg); line-height: 1.62; }
+.page { width: min(920px, calc(100vw - 40px)); margin: 0 auto; padding: 56px 0 76px; }
+
+h1, h2, h3, h4, h5, h6, p { margin-top: 0; }
+h1 { margin-bottom: 18px; font-size: 68px; line-height: 0.98; }
+h2 { margin: 56px 0 14px; padding-top: 28px; border-top: 1px solid var(--line); font-size: 26px; line-height: 1.2; }
+h3 { margin: 30px 0 8px; font-size: 17px; }
+h4, h5, h6 { margin: 24px 0 8px; font-size: 16px; }
+
+p { color: var(--muted); font-size: 18px; }
+h1 + p { max-width: 800px; color: var(--text); font-size: 22px; line-height: 1.45; }
+ul, ol { margin: 0 0 20px; padding-left: 24px; color: var(--muted); font-size: 18px; }
+li + li { margin-top: 8px; }
+strong { color: var(--text); }
+
+code { color: var(--code); font-family: var(--mono); font-size: 0.93em; }
+pre { margin: 20px 0; padding: 18px; overflow-x: auto; border: 1px solid var(--line);
+  background: var(--code-bg); color: var(--code); font-family: var(--mono); font-size: 14px; line-height: 1.55; }
+pre code { font-size: inherit; }
+
+blockquote { margin: 28px 0; padding: 0 0 0 18px; border-left: 2px solid var(--text); }
+blockquote p { color: var(--text); }
+a { color: var(--link); }
+
+@media (max-width: 640px) {
+  .page { width: min(100vw - 28px, 920px); padding-top: 42px; }
+  h1 { font-size: 42px; }
+  h1 + p { font-size: 20px; }
+  p, ul, ol { font-size: 17px; }
+}
+.eyebrow { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--faint); font-family: var(--mono); margin-bottom: 12px; }
+.badge { display: inline-block; padding: 2px 8px; font-size: 0.75rem; font-weight: 600;
+  border-radius: 3px; border: 1px solid; }
+.badge-green { background: color-mix(in srgb, #16a34a 15%, var(--code-bg)); color: #86efac;
+  border-color: color-mix(in srgb, #16a34a 50%, transparent); }
+.badge-amber { background: color-mix(in srgb, #d97706 15%, var(--code-bg)); color: #fcd34d;
+  border-color: color-mix(in srgb, #d97706 50%, transparent); }
+.badge-gray { background: var(--line); color: var(--muted); border-color: var(--line); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin: 28px 0; }
+.stat { border: 1px solid var(--line); padding: 1rem; }
+.stat .value { color: var(--text); font-size: 2rem; font-weight: 700; }
+.stat .label { color: var(--faint); font-size: 14px; }
+.diagram { width: 100%; height: auto; margin: 24px 0; }
+.diagram text { font-family: var(--sans); }
+.diagram .node { fill: var(--code-bg); stroke: var(--line); stroke-width: 1.5; }
+.diagram .node-emph { stroke: var(--link); stroke-width: 2; }
+.diagram .label { fill: var(--text); font-size: 14px; }
+.diagram .annot { fill: var(--faint); font-size: 12px; }
+.diagram .edge { stroke: var(--line); color: var(--line); stroke-width: 1.5; fill: none; }
+.diagram .edge-emph { stroke: var(--link); color: var(--link); stroke-width: 2; fill: none; }
+.evidence { border: 1px solid var(--line); padding: 18px; margin: 28px 0; }
+.evidence h3 { margin-top: 0; }
+.evidence li { color: var(--faint); font-size: 15px; }
+.decision, .risk { border: 1px solid var(--line); padding: 18px; margin: 18px 0; break-inside: avoid; }
+.decision h3, .risk h3 { margin-top: 0; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; color: var(--muted); font-size: 16px; }
+th, td { border: 1px solid var(--line); padding: 10px 12px; vertical-align: top; text-align: left; }
+th { color: var(--text); }
+@media print {
+  :root { --bg: #fff; --text: #111; --muted: #555; --faint: #888; --line: #ddd; --code-bg: #f5f5f5; --code: #333; --link: #1a5fb4; }
+  .page { width: 100%; padding: 0; }
+  pre, table, .decision, .risk, .evidence { break-inside: avoid; }
+}
+@page { margin: 2cm; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">ARCHITECTURE REPORT · APP SWITCHER</p>
+    <h1>App Switcher Architecture</h1>
+    <p>Source-aware architecture report for the native Swift/AppKit macOS app switcher prototype. Prepared for engineering review on 2026-06-09.</p>
+
+    <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers an Option-Tab shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
+
+    <div class="stats">
+      <div class="stat"><div class="value">1</div><div class="label">SwiftPM executable</div></div>
+      <div class="stat"><div class="value">10</div><div class="label">Swift source files</div></div>
+      <div class="stat"><div class="value">3</div><div class="label">macOS API families</div></div>
+      <div class="stat"><div class="value">0</div><div class="label">Automated tests</div></div>
+    </div>
+
+    <aside class="evidence">
+      <h3>Evidence Summary</h3>
+      <ul>
+        <li><code>Package.swift:5-18</code> defines the SwiftPM executable target and macOS 13 platform.</li>
+        <li><code>Sources/AppSwitcher/main.swift:3-8</code> starts an AppKit accessory application.</li>
+        <li><code>Sources/AppSwitcher/AppDelegate.swift:11-23</code> composes the services.</li>
+        <li><code>Sources/AppSwitcher/SwitcherSessionController.swift:39-58</code> builds and displays a switcher session.</li>
+        <li><code>Sources/AppSwitcher/WindowInventoryService.swift:6-81</code> enumerates apps and Accessibility windows.</li>
+        <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift:25-88</code> uses Core Graphics visible-window state to approximate the active workspace.</li>
+      </ul>
+    </aside>
+
+    <h2>Executive Summary</h2>
+    <p><span class="badge badge-green">Source-backed</span> App Switcher is a small native macOS prototype with explicit service boundaries for permissions, hotkey input, window inventory, workspace filtering, overlay rendering, and activation. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed app bundle, no configurable hotkey UI, and only a public-API approximation of Space membership.</p>
+
+    <h2>System Purpose</h2>
+    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS app switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and an Option-Tab shortcut (<code>README.md:1-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The domain glossary defines an App Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
+
+    <h2>Architecture Map</h2>
+    <svg class="diagram" viewBox="0 0 900 390" role="img" aria-label="Architecture map for App Switcher">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <rect class="node" x="35" y="40" width="150" height="56"></rect>
+      <text class="label" x="110" y="68" text-anchor="middle" dominant-baseline="central">main.swift</text>
+
+      <rect class="node-emph node" x="260" y="40" width="170" height="56"></rect>
+      <text class="label" x="345" y="68" text-anchor="middle" dominant-baseline="central">AppDelegate</text>
+
+      <rect class="node" x="500" y="40" width="170" height="56"></rect>
+      <text class="label" x="585" y="68" text-anchor="middle" dominant-baseline="central">Status Menu</text>
+
+      <rect class="node" x="500" y="140" width="170" height="56"></rect>
+      <text class="label" x="585" y="168" text-anchor="middle" dominant-baseline="central">Hotkey Monitor</text>
+
+      <rect class="node-emph node" x="260" y="140" width="170" height="56"></rect>
+      <text class="label" x="345" y="168" text-anchor="middle" dominant-baseline="central">Session Controller</text>
+
+      <rect class="node" x="35" y="250" width="170" height="56"></rect>
+      <text class="label" x="120" y="278" text-anchor="middle" dominant-baseline="central">Window Inventory</text>
+
+      <rect class="node" x="260" y="250" width="170" height="56"></rect>
+      <text class="label" x="345" y="278" text-anchor="middle" dominant-baseline="central">Workspace Filter</text>
+
+      <rect class="node" x="500" y="250" width="170" height="56"></rect>
+      <text class="label" x="585" y="278" text-anchor="middle" dominant-baseline="central">Overlay</text>
+
+      <rect class="node" x="715" y="250" width="150" height="56"></rect>
+      <text class="label" x="790" y="278" text-anchor="middle" dominant-baseline="central">Activation</text>
+
+      <path class="edge" d="M185 68 H260" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M430 68 H500" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M500 168 H430" marker-end="url(#arrow)"></path>
+      <path class="edge-emph" d="M345 96 V140" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M260 168 H205 V278" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M205 278 H260" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M430 278 H500" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M670 278 H715" marker-end="url(#arrow)"></path>
+      <text class="annot" x="235" y="58" text-anchor="middle">delegate</text>
+      <text class="annot" x="465" y="158" text-anchor="middle">Option-Tab</text>
+      <text class="annot" x="465" y="268" text-anchor="middle">candidates</text>
+    </svg>
+
+    <p><span class="badge badge-green">Source-backed</span> The entrypoint creates <code>NSApplication.shared</code>, assigns <code>AppDelegate</code>, sets accessory activation policy, and starts the AppKit event loop (<code>main.swift:3-8</code>). <span class="badge badge-green">Source-backed</span> The delegate constructs all core services directly on launch (<code>AppDelegate.swift:11-23</code>).</p>
+
+    <h2>Major Modules</h2>
+    <table>
+      <thead><tr><th>Module</th><th>Purpose</th><th>Evidence</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>App shell</td><td>Starts the AppKit accessory app and composes services.</td><td><code>main.swift:3-8</code>, <code>AppDelegate.swift:11-23</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Status bar</td><td>Provides menu actions for showing the switcher, permission prompts, settings, and quit.</td><td><code>StatusBarController.swift:18-35</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Hotkey input</td><td>Registers Option-Tab through Carbon event hotkey APIs.</td><td><code>GlobalHotKeyMonitor.swift:18-60</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Session orchestration</td><td>Checks permissions, snapshots candidates, filters, renders overlay, navigates selection, and activates/cancels.</td><td><code>SwitcherSessionController.swift:29-145</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records.</td><td><code>WindowInventoryService.swift:6-81</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code> and screen intersection as a public-API visibility approximation.</td><td><code>PublicWorkspaceFilter.swift:25-88</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
+        <tr><td>Overlay</td><td>Displays a floating borderless AppKit window with icons, titles, and selection ring.</td><td><code>SwitcherOverlayController.swift:11-24</code>, <code>SwitcherOverlayController.swift:76-143</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Activation</td><td>Raises/focuses the Accessibility window and activates the owning app.</td><td><code>WindowActivationService.swift:5-19</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Data Model and Storage</h2>
+    <p><span class="badge badge-green">Source-backed</span> The only domain data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift:4-12</code>). <span class="badge badge-green">Source-backed</span> There is no persistent storage, database, cache, or migration layer in the current file inventory.</p>
+
+    <h2>External Integrations</h2>
+    <p><span class="badge badge-green">Source-backed</span> The app integrates with macOS frameworks only: AppKit for app lifecycle, menu, overlay, and screens; Carbon for hotkey registration; ApplicationServices Accessibility for permission/window control; and Core Graphics for visible window-server state.</p>
+    <ul>
+      <li><code>AXIsProcessTrusted</code> and <code>AXIsProcessTrustedWithOptions</code> check/request Accessibility trust (<code>AccessibilityPermissionService.swift:6-15</code>).</li>
+      <li><code>RegisterEventHotKey</code> registers Option-Tab (<code>GlobalHotKeyMonitor.swift:48-56</code>).</li>
+      <li><code>AXUIElementCopyAttributeValue</code> reads window attributes (<code>WindowInventoryService.swift:85-95</code>).</li>
+      <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots (<code>PublicWorkspaceFilter.swift:25-29</code>).</li>
+    </ul>
+
+    <h2>Key Flow: Switch Window</h2>
+    <ol>
+      <li><span class="badge badge-green">Source-backed</span> Carbon emits the registered hotkey callback and invokes <code>onPressed</code> (<code>GlobalHotKeyMonitor.swift:24-36</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> The delegate's closure calls <code>sessionController.handleSwitcherShortcut()</code> (<code>AppDelegate.swift:31-33</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> The session either advances selection if visible or begins a new session (<code>SwitcherSessionController.swift:29-36</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, and shows the overlay (<code>SwitcherSessionController.swift:39-58</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> Releasing Option triggers the global flags-changed monitor, logs the release, and activates the selected candidate (<code>SwitcherSessionController.swift:116-129</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> Activation raises/focuses the Accessibility window and activates the owning process (<code>WindowActivationService.swift:5-19</code>).</li>
+    </ol>
+
+    <h2>Architecture Decisions</h2>
+    <section class="decision">
+      <h3>Native Swift/AppKit executable</h3>
+      <p><span class="badge badge-green">Source-backed</span> The project is a SwiftPM executable targeting macOS 13, with AppKit lifecycle code at runtime (<code>Package.swift:5-18</code>, <code>main.swift:3-8</code>). Tradeoff: fast native integration with macOS APIs, but no Xcode app-bundle packaging yet.</p>
+    </section>
+    <section class="decision">
+      <h3>Public-API workspace approximation</h3>
+      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:25-88</code>). Tradeoff: distribution-friendly and less brittle, but exact Space membership may be imperfect.</p>
+    </section>
+    <section class="decision">
+      <h3>Service-per-responsibility composition</h3>
+      <p><span class="badge badge-green">Source-backed</span> <code>AppDelegate</code> directly constructs permission, inventory, filter, activation, overlay, session, menu, and hotkey services (<code>AppDelegate.swift:11-37</code>). Tradeoff: simple for a prototype, but dependency injection is manual and not yet test-oriented.</p>
+    </section>
+
+    <h2>Security Controls</h2>
+    <p><span class="badge badge-green">Source-backed</span> The app explicitly checks Accessibility trust before listing windows (<code>SwitcherSessionController.swift:39-44</code>) and exposes a settings path for permission management (<code>AccessibilityPermissionService.swift:18-26</code>). <span class="badge badge-green">Source-backed</span> It does not use network APIs, store secrets, or write user data in the current codebase.</p>
+    <p><span class="badge badge-amber">Gap</span> There is no signed/notarized app bundle, entitlement review, hardened runtime configuration, or release packaging yet. That matters because the product goal includes eventual public distribution.</p>
+
+    <h2>Gaps and Risks</h2>
+    <section class="risk">
+      <h3>Space membership is approximate</h3>
+      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, titles, PID, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:61-88</code>). Severity: medium, because edge cases across Spaces, fullscreen apps, Stage Manager, and multiple displays need manual validation.</p>
+    </section>
+    <section class="risk">
+      <h3>No automated tests</h3>
+      <p><span class="badge badge-amber">Gap</span> The SwiftPM package defines only an executable target and no test target (<code>Package.swift:10-18</code>). Severity: medium, because filtering and session transitions are behavior-heavy and easy to regress.</p>
+    </section>
+    <section class="risk">
+      <h3>Hotkey is hard-coded</h3>
+      <p><span class="badge badge-amber">Gap</span> Option-Tab is registered directly in <code>GlobalHotKeyMonitor</code> (<code>GlobalHotKeyMonitor.swift:48-56</code>). Severity: low for prototype, medium for public release.</p>
+    </section>
+    <section class="risk">
+      <h3>Overlay shows only seven candidates</h3>
+      <p><span class="badge badge-green">Source-backed</span> The overlay frame and drawing logic cap visible items at seven (<code>SwitcherOverlayController.swift:50-51</code>, <code>SwitcherOverlayController.swift:91-93</code>). <span class="badge badge-amber">Gap</span> There is no overflow affordance yet.</p>
+    </section>
+
+    <h2>Recommendations</h2>
+    <ol>
+      <li>Add a test target for candidate filtering, session state transitions, and activation fallback boundaries.</li>
+      <li>Introduce a configurable hotkey model before exploring Command-Tab replacement.</li>
+      <li>Build an app-bundle packaging path with signing/notarization before public distribution.</li>
+      <li>Record manual test results for Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder.</li>
+      <li>Add overlay overflow handling for more than seven candidates.</li>
+    </ol>
+
+    <h2>Evidence Index</h2>
+    <ul>
+      <li><code>README.md</code> - product scope, run command, permissions, shortcut.</li>
+      <li><code>CONTEXT.md</code> - domain glossary for App Switcher, Workspace, Window Candidate, Switcher Session, Switcher Shortcut.</li>
+      <li><code>Package.swift</code> - SwiftPM package, platform, executable target.</li>
+      <li><code>Sources/AppSwitcher/main.swift</code> - AppKit app startup and accessory activation.</li>
+      <li><code>Sources/AppSwitcher/AppDelegate.swift</code> - service construction, startup diagnostics, permission check, hotkey lifecycle.</li>
+      <li><code>Sources/AppSwitcher/AccessibilityPermissionService.swift</code> - Accessibility trust and settings integration.</li>
+      <li><code>Sources/AppSwitcher/StatusBarController.swift</code> - menu-bar UI and permission status.</li>
+      <li><code>Sources/AppSwitcher/GlobalHotKeyMonitor.swift</code> - Carbon hotkey registration.</li>
+      <li><code>Sources/AppSwitcher/SwitcherSessionController.swift</code> - switcher session state, selection, activation trigger, monitors.</li>
+      <li><code>Sources/AppSwitcher/WindowInventoryService.swift</code> - Accessibility window discovery and candidate filtering.</li>
+      <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift</code> - visible-window public API workspace filter.</li>
+      <li><code>Sources/AppSwitcher/SwitcherOverlayController.swift</code> - AppKit overlay window and custom drawing.</li>
+      <li><code>Sources/AppSwitcher/WindowActivationService.swift</code> - exact-window and app fallback activation.</li>
+      <li><code>Sources/AppSwitcher/WindowCandidate.swift</code> - candidate record shape.</li>
+      <li><code>Sources/AppSwitcher/Diagnostics.swift</code> - logging helper.</li>
+    </ul>
+  </main>
+</body>
+</html>
