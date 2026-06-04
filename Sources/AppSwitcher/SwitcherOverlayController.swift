@@ -9,9 +9,9 @@ final class SwitcherOverlayController {
     }
 
     init() {
-        window = NSWindow(
+        window = SwitcherOverlayPanel(
             contentRect: .zero,
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -30,7 +30,7 @@ final class SwitcherOverlayController {
 
         let frame = preferredFrame(candidateCount: candidates.count)
         window.setFrame(frame, display: true)
-        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
     }
 
     func updateSelection(_ selectedIndex: Int) {
@@ -57,6 +57,16 @@ final class SwitcherOverlayController {
             width: width,
             height: height
         )
+    }
+}
+
+private final class SwitcherOverlayPanel: NSPanel {
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        false
     }
 }
 
@@ -89,17 +99,29 @@ final class SwitcherOverlayView: NSView {
         }
 
         let itemWidth: CGFloat = 112
-        let startX = (bounds.width - CGFloat(min(candidates.count, 7)) * itemWidth) / 2
-        let visibleCandidates = Array(candidates.prefix(7))
+        let visibleRange = visibleCandidateRange()
+        let visibleCandidates = candidates[visibleRange]
+        let startX = (bounds.width - CGFloat(visibleCandidates.count) * itemWidth) / 2
 
-        for (index, candidate) in visibleCandidates.enumerated() {
-            draw(candidate: candidate, index: index, in: CGRect(
-                x: startX + CGFloat(index) * itemWidth,
+        for (offset, candidate) in visibleCandidates.enumerated() {
+            draw(candidate: candidate, index: visibleRange.lowerBound + offset, in: CGRect(
+                x: startX + CGFloat(offset) * itemWidth,
                 y: 24,
                 width: itemWidth,
                 height: bounds.height - 48
             ))
         }
+    }
+
+    private func visibleCandidateRange() -> Range<Int> {
+        let visibleCount = min(candidates.count, 7)
+        let halfWindow = visibleCount / 2
+        let lowerBound = min(
+            max(selectedIndex - halfWindow, 0),
+            max(candidates.count - visibleCount, 0)
+        )
+
+        return lowerBound..<(lowerBound + visibleCount)
     }
 
     private func draw(candidate: WindowCandidate, index: Int, in rect: CGRect) {
