@@ -15,7 +15,13 @@ final class GlobalHotKeyMonitor {
         self.onPressed = onPressed
     }
 
+    deinit {
+        stop()
+    }
+
     func start() throws {
+        stop()
+
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
@@ -56,6 +62,11 @@ final class GlobalHotKeyMonitor {
         )
 
         guard registerStatus == noErr else {
+            if let handlerRef {
+                RemoveEventHandler(handlerRef)
+                self.handlerRef = nil
+            }
+
             throw GlobalHotKeyError.registerHotKeyFailed(registerStatus)
         }
     }

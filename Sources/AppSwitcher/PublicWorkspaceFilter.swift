@@ -1,4 +1,3 @@
-import AppKit
 import CoreGraphics
 
 struct VisibleWindowSnapshot {
@@ -12,11 +11,7 @@ final class PublicWorkspaceFilter {
         let visibleWindows = currentVisibleWindows()
 
         return candidates.filter { candidate in
-            guard intersectsAnyScreen(candidate.frame) else {
-                return false
-            }
-
-            return visibleWindows.contains { visibleWindow in
+            visibleWindows.contains { visibleWindow in
                 isVisibleMatch(candidate: candidate, visibleWindow: visibleWindow)
             }
         }
@@ -49,12 +44,6 @@ final class PublicWorkspaceFilter {
             }
 
             return VisibleWindowSnapshot(processIdentifier: ownerPID, title: title, frame: frame)
-        }
-    }
-
-    private func intersectsAnyScreen(_ frame: CGRect) -> Bool {
-        NSScreen.screens.contains { screen in
-            screen.frame.intersects(frame)
         }
     }
 
