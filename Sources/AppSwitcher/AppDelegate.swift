@@ -41,8 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !permissionService.isTrusted {
-            Diagnostics.log("Accessibility permission is not granted. Opening the macOS permission prompt.")
-            permissionService.requestTrustPrompt()
+            Diagnostics.log("Accessibility permission is not granted. Use the menu-bar item or switcher shortcut to request it.")
         } else {
             Diagnostics.log("Accessibility permission is granted.")
         }

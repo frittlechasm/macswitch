@@ -22,7 +22,8 @@ To run it without occupying the terminal after it is built:
 
 ```sh
 swift build
-.build/debug/AppSwitcher >/tmp/app-switcher.log 2>&1 &
+mkdir -p "$HOME/Library/Logs"
+.build/debug/AppSwitcher >"$HOME/Library/Logs/AppSwitcher.log" 2>&1 &
 ```
 
 The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press `Option-Tab`.

@@ -9,7 +9,7 @@ final class WindowActivationService {
         setBooleanAttribute(kAXFocusedAttribute, value: true, on: candidate.axWindow)
 
         guard let app = NSRunningApplication(processIdentifier: candidate.processIdentifier) else {
-            Diagnostics.log("Could not find owning app for \(candidate.displayTitle)")
+            Diagnostics.log("Could not find owning app for pid \(candidate.processIdentifier)")
             return
         }
 
