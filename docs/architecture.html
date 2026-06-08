@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>App Switcher Architecture Report</title>
+  <title>App Switcher Architecture</title>
   <style>
 :root {
   --bg: #000;
@@ -91,7 +91,7 @@ th { color: var(--text); }
   <main class="page">
     <p class="eyebrow">ARCHITECTURE REPORT · APP SWITCHER</p>
     <h1>App Switcher Architecture</h1>
-    <p>Source-aware architecture report for the native Swift/AppKit macOS app switcher prototype. Prepared for engineering review on 2026-06-09.</p>
+    <p>Human-readable architecture report for the native Swift/AppKit macOS app switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09.</p>
 
     <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers an Option-Tab shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
 
