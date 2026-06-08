@@ -24,6 +24,7 @@ final class SwitcherOverlayController {
         window.contentView = overlayView
     }
 
+    /// Populates and centers the floating overlay for the current switcher session.
     func show(candidates: [WindowCandidate], selectedIndex: Int) {
         overlayView.candidates = candidates
         overlayView.selectedIndex = selectedIndex
@@ -41,6 +42,7 @@ final class SwitcherOverlayController {
         window.orderOut(nil)
     }
 
+    /// Sizes the overlay around up to seven visible items and centers it on the main screen.
     private func preferredFrame(candidateCount: Int) -> CGRect {
         let screenFrame = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 900, height: 600)
         let itemWidth: CGFloat = 112
@@ -62,6 +64,7 @@ final class SwitcherOverlayController {
 
 private final class SwitcherOverlayPanel: NSPanel {
     override var canBecomeKey: Bool {
+        // Local key monitors only receive session navigation keys while this panel can become key.
         true
     }
 
@@ -113,6 +116,7 @@ final class SwitcherOverlayView: NSView {
         }
     }
 
+    /// Chooses the contiguous slice of candidates to draw around the current selection.
     private func visibleCandidateRange() -> Range<Int> {
         let visibleCount = min(candidates.count, 7)
         let halfWindow = visibleCount / 2
@@ -124,6 +128,7 @@ final class SwitcherOverlayView: NSView {
         return lowerBound..<(lowerBound + visibleCount)
     }
 
+    /// Draws one candidate cell, including selection highlight, app icon, title, and app name.
     private func draw(candidate: WindowCandidate, index: Int, in rect: CGRect) {
         let selected = index == selectedIndex
         let selectionRect = rect.insetBy(dx: 8, dy: 0)

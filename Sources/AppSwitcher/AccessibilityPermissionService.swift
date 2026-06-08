@@ -7,6 +7,7 @@ final class AccessibilityPermissionService {
         AXIsProcessTrusted()
     }
 
+    /// Asks macOS to show the Accessibility permission prompt when trust has not been granted.
     func requestTrustPrompt() {
         let options = [
             kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
@@ -15,6 +16,7 @@ final class AccessibilityPermissionService {
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
+    /// Opens the Accessibility privacy pane, falling back to the main System Settings app.
     func openAccessibilitySettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
 

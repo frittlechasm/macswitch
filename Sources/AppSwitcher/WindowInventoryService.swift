@@ -3,10 +3,12 @@ import ApplicationServices
 import CoreGraphics
 
 final class WindowInventoryService {
+    /// Builds a fresh list of switchable windows from currently running regular apps.
     func snapshot() -> [WindowCandidate] {
         NSWorkspace.shared.runningApplications.flatMap(candidates(for:))
     }
 
+    /// Returns Accessibility-backed window candidates for one foreground-capable app.
     private func candidates(for app: NSRunningApplication) -> [WindowCandidate] {
         guard app.activationPolicy == .regular else {
             return []
@@ -26,6 +28,7 @@ final class WindowInventoryService {
         }
     }
 
+    /// Converts one AX window into a domain candidate after filtering non-switchable windows.
     private func candidate(for window: AXUIElement, app: NSRunningApplication, index: Int) -> WindowCandidate? {
         if (window.copyAttribute(kAXMinimizedAttribute) as Bool?) == true {
             return nil
@@ -66,6 +69,7 @@ final class WindowInventoryService {
         )
     }
 
+    /// Keeps standard document-style windows while excluding sheets, dialogs, and custom UI.
     private func isMainUserFacingWindow(_ window: AXUIElement) -> Bool {
         let role = window.copyAttribute(kAXRoleAttribute) as String?
         let subrole = window.copyAttribute(kAXSubroleAttribute) as String?
@@ -83,6 +87,7 @@ final class WindowInventoryService {
 }
 
 private extension AXUIElement {
+    /// Reads and casts one Accessibility attribute, returning nil when the app does not expose it.
     func copyAttribute<T>(_ attribute: String) -> T? {
         var value: CFTypeRef?
         let error = AXUIElementCopyAttributeValue(self, attribute as CFString, &value)
@@ -94,6 +99,7 @@ private extension AXUIElement {
         return value as? T
     }
 
+    /// Reconstructs a window frame from separate AX position and size attributes.
     var windowFrame: CGRect? {
         guard
             let positionValue: AXValue = copyAttribute(kAXPositionAttribute),

@@ -36,6 +36,7 @@ final class SwitcherSessionController {
         }
     }
 
+    /// Starts a switcher session by collecting current-workspace windows and showing the overlay.
     private func beginSession() {
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
@@ -57,6 +58,7 @@ final class SwitcherSessionController {
         overlayController.show(candidates: candidates, selectedIndex: selectedIndex)
     }
 
+    /// Advances the selected candidate, wrapping around either end of the list.
     private func moveSelection(by offset: Int) {
         guard !candidates.isEmpty else {
             return
@@ -66,6 +68,7 @@ final class SwitcherSessionController {
         overlayController.updateSelection(selectedIndex)
     }
 
+    /// Activates the selected window after tearing down the transient switcher UI.
     private func activateSelection() {
         guard candidates.indices.contains(selectedIndex) else {
             cancelSession()
@@ -77,6 +80,7 @@ final class SwitcherSessionController {
         activationService.activate(candidate)
     }
 
+    /// Ends the active switcher session and removes event monitors installed for it.
     private func cancelSession() {
         overlayController.hide()
         candidates = []
@@ -84,6 +88,7 @@ final class SwitcherSessionController {
         removeSessionEventMonitors()
     }
 
+    /// Captures keyboard navigation while the overlay is visible and activates on Option release.
     private func installSessionEventMonitors() {
         removeSessionEventMonitors()
 
@@ -93,19 +98,19 @@ final class SwitcherSessionController {
             }
 
             switch event.keyCode {
-            case 36:
+            case 36: // Return
                 self.activateSelection()
                 return nil
-            case 48:
+            case 48: // Tab
                 self.moveSelection(by: event.modifierFlags.contains(.shift) ? -1 : 1)
                 return nil
-            case 53:
+            case 53: // Escape
                 self.cancelSession()
                 return nil
-            case 123:
+            case 123: // Left Arrow
                 self.moveSelection(by: -1)
                 return nil
-            case 124:
+            case 124: // Right Arrow
                 self.moveSelection(by: 1)
                 return nil
             default:

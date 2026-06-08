@@ -15,6 +15,7 @@ final class StatusBarController: NSObject {
         configure()
     }
 
+    /// Builds the menu-bar item and wires each menu action back to this controller.
     private func configure() {
         statusItem.button?.image = NSImage(systemSymbolName: "rectangle.2.swap", accessibilityDescription: "App Switcher")
 
@@ -61,6 +62,7 @@ final class StatusBarController: NSObject {
 }
 
 extension StatusBarController: NSMenuDelegate {
+    /// Refreshes permission state each time the menu opens because it can change in System Settings.
     func menuWillOpen(_ menu: NSMenu) {
         refreshPermissionStatus()
     }

@@ -1,3 +1,4 @@
 plans/
 .build/
 .DS_Store
+.vscode/

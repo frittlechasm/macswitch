@@ -7,6 +7,7 @@ struct VisibleWindowSnapshot {
 }
 
 final class PublicWorkspaceFilter {
+    /// Keeps only candidates that also appear in the public on-screen window list.
     func filter(_ candidates: [WindowCandidate]) -> [WindowCandidate] {
         let visibleWindows = currentVisibleWindows()
 
@@ -17,6 +18,7 @@ final class PublicWorkspaceFilter {
         }
     }
 
+    /// Reads the current workspace's visible windows from Core Graphics window-server metadata.
     private func currentVisibleWindows() -> [VisibleWindowSnapshot] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let windowInfo = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
@@ -47,6 +49,7 @@ final class PublicWorkspaceFilter {
         }
     }
 
+    /// Matches AX candidates to public windows by process, then title or substantial frame overlap.
     private func isVisibleMatch(candidate: WindowCandidate, visibleWindow: VisibleWindowSnapshot) -> Bool {
         guard candidate.processIdentifier == visibleWindow.processIdentifier else {
             return false

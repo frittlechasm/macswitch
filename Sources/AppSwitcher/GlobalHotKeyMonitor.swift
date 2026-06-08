@@ -19,6 +19,7 @@ final class GlobalHotKeyMonitor {
         stop()
     }
 
+    /// Registers the Carbon Option-Tab hotkey and forwards presses to the callback.
     func start() throws {
         stop()
 
@@ -34,6 +35,7 @@ final class GlobalHotKeyMonitor {
                     return noErr
                 }
 
+                // Carbon stores callback context as an opaque pointer, so bridge it back to this monitor.
                 let monitor = Unmanaged<GlobalHotKeyMonitor>
                     .fromOpaque(userData)
                     .takeUnretainedValue()
@@ -71,6 +73,7 @@ final class GlobalHotKeyMonitor {
         }
     }
 
+    /// Removes both the hotkey registration and its Carbon event handler.
     func stop() {
         if let hotKeyRef {
             UnregisterEventHotKey(hotKeyRef)
@@ -84,6 +87,7 @@ final class GlobalHotKeyMonitor {
     }
 }
 
+/// Converts a four-character string into the OSType signature Carbon expects.
 private func fourCharacterCode(_ string: String) -> OSType {
     string.utf8.reduce(0) { result, character in
         (result << 8) + OSType(character)
