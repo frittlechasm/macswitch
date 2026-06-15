@@ -1,4 +1,10 @@
 import AppKit
+import Carbon
+
+enum SwitcherSessionTrigger {
+    case hotkey
+    case menu
+}
 
 final class SwitcherSessionController {
     private let permissionService: AccessibilityPermissionService
@@ -10,6 +16,8 @@ final class SwitcherSessionController {
     private var candidates: [WindowCandidate] = []
     private var selectedIndex = 0
     private var localKeyMonitor: Any?
+    private var globalKeyMonitor: Any?
+    private var localModifierMonitor: Any?
     private var globalModifierMonitor: Any?
 
     init(
@@ -26,18 +34,18 @@ final class SwitcherSessionController {
         self.overlayController = overlayController
     }
 
-    func handleSwitcherShortcut() {
+    func handleSwitcherShortcut(trigger: SwitcherSessionTrigger = .hotkey) {
         DispatchQueue.main.async {
             if self.overlayController.isVisible {
                 self.moveSelection(by: 1)
             } else {
-                self.beginSession()
+                self.beginSession(trigger: trigger)
             }
         }
     }
 
     /// Starts a switcher session by collecting current-workspace windows and showing the overlay.
-    private func beginSession() {
+    private func beginSession(trigger: SwitcherSessionTrigger) {
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
             Diagnostics.log("Accessibility permission is required before windows can be listed")
@@ -47,14 +55,14 @@ final class SwitcherSessionController {
         let rawCandidates = inventoryService.snapshot()
         candidates = workspaceFilter.filter(rawCandidates)
         Diagnostics.log("Window candidates: raw=\(rawCandidates.count), currentWorkspace=\(candidates.count)")
-        selectedIndex = 0
+        selectedIndex = candidates.count > 1 ? 1 : 0
 
         guard !candidates.isEmpty else {
             Diagnostics.log("No current-workspace window candidates found")
             return
         }
 
-        installSessionEventMonitors()
+        installSessionEventMonitors(activateOnOptionRelease: trigger == .hotkey)
         overlayController.show(candidates: candidates, selectedIndex: selectedIndex)
     }
 
@@ -88,63 +96,86 @@ final class SwitcherSessionController {
         removeSessionEventMonitors()
     }
 
-    /// Captures keyboard navigation while the overlay is visible and activates on Option release.
-    private func installSessionEventMonitors() {
+    /// Captures keyboard navigation while the overlay is visible and optionally activates on Option release.
+    private func installSessionEventMonitors(activateOnOptionRelease: Bool) {
         removeSessionEventMonitors()
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else {
-                return event
-            }
+            self?.handleSessionKeyDown(event, canConsumeEvent: true) ?? event
+        }
 
-            switch event.keyCode {
-            case 36: // Return
-                self.activateSelection()
-                return nil
-            case 48: // Tab
-                self.moveSelection(by: event.modifierFlags.contains(.shift) ? -1 : 1)
-                return nil
-            case 53: // Escape
-                self.cancelSession()
-                return nil
-            case 123: // Left Arrow
-                self.moveSelection(by: -1)
-                return nil
-            case 124: // Right Arrow
-                self.moveSelection(by: 1)
-                return nil
-            default:
-                return event
-            }
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            _ = self?.handleSessionKeyDown(event, canConsumeEvent: false)
+        }
+
+        guard activateOnOptionRelease else {
+            return
+        }
+
+        localModifierMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleModifierChange(event)
+            return event
         }
 
         globalModifierMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            guard let self else {
-                return
-            }
+            self?.handleModifierChange(event)
+        }
+    }
 
-            DispatchQueue.main.async {
-                guard self.overlayController.isVisible else {
-                    return
-                }
+    private func handleSessionKeyDown(_ event: NSEvent, canConsumeEvent: Bool) -> NSEvent? {
+        guard overlayController.isVisible else {
+            return event
+        }
 
-                if !event.modifierFlags.contains(.option) {
-                    Diagnostics.log("Option released; activating selected window")
-                    self.activateSelection()
-                }
-            }
+        switch Int(event.keyCode) {
+        case kVK_Return:
+            activateSelection()
+            return canConsumeEvent ? nil : event
+        case kVK_Tab:
+            moveSelection(by: event.modifierFlags.contains(.shift) ? -1 : 1)
+            return canConsumeEvent ? nil : event
+        case kVK_Escape:
+            cancelSession()
+            return canConsumeEvent ? nil : event
+        case kVK_LeftArrow:
+            moveSelection(by: -1)
+            return canConsumeEvent ? nil : event
+        case kVK_RightArrow:
+            moveSelection(by: 1)
+            return canConsumeEvent ? nil : event
+        default:
+            return event
+        }
+    }
+
+    private func handleModifierChange(_ event: NSEvent) {
+        guard overlayController.isVisible else {
+            return
+        }
+
+        if !event.modifierFlags.contains(.option) {
+            Diagnostics.log("Option released; activating selected window")
+            activateSelection()
         }
     }
 
     private func removeSessionEventMonitors() {
-        if let localKeyMonitor {
-            NSEvent.removeMonitor(localKeyMonitor)
-            self.localKeyMonitor = nil
+        let monitors = [
+            localKeyMonitor,
+            globalKeyMonitor,
+            localModifierMonitor,
+            globalModifierMonitor
+        ]
+
+        for monitor in monitors {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+            }
         }
 
-        if let globalModifierMonitor {
-            NSEvent.removeMonitor(globalModifierMonitor)
-            self.globalModifierMonitor = nil
-        }
+        localKeyMonitor = nil
+        globalKeyMonitor = nil
+        localModifierMonitor = nil
+        globalModifierMonitor = nil
     }
 }

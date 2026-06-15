@@ -37,7 +37,7 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func showSwitcher() {
-        sessionController?.handleSwitcherShortcut()
+        sessionController?.handleSwitcherShortcut(trigger: .menu)
     }
 
     @objc private func requestAccessibilityPermission() {
