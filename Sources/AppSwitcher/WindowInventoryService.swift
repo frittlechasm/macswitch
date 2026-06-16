@@ -19,6 +19,11 @@ final class WindowInventoryService {
         }
 
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        let timeoutResult = AXUIElementSetMessagingTimeout(appElement, 0.25)
+        if timeoutResult != .success {
+            Diagnostics.log("Failed to set AX messaging timeout for \(app.localizedName ?? "unknown app"): \(timeoutResult.rawValue)")
+        }
+
         guard let windows: [AXUIElement] = appElement.copyAttribute(kAXWindowsAttribute) else {
             return []
         }
@@ -40,10 +45,6 @@ final class WindowInventoryService {
 
         let title = (window.copyAttribute(kAXTitleAttribute) as String?)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        guard !title.isEmpty else {
-            return nil
-        }
 
         guard let frame = window.windowFrame, !frame.isEmpty else {
             return nil
