@@ -7,14 +7,24 @@ struct VisibleWindowSnapshot {
 }
 
 final class PublicWorkspaceFilter {
-    /// Keeps only candidates that also appear in the public on-screen window list.
+    /// Keeps candidates that appear in the public on-screen window list, ordered front-to-back.
     func filter(_ candidates: [WindowCandidate]) -> [WindowCandidate] {
         let visibleWindows = currentVisibleWindows()
+        var matchedCandidateIndexes = Set<Int>()
 
-        return candidates.filter { candidate in
-            visibleWindows.contains { visibleWindow in
-                isVisibleMatch(candidate: candidate, visibleWindow: visibleWindow)
+        return visibleWindows.compactMap { visibleWindow in
+            guard let candidateIndex = candidates.indices.first(where: { index in
+                guard !matchedCandidateIndexes.contains(index) else {
+                    return false
+                }
+
+                return isVisibleMatch(candidate: candidates[index], visibleWindow: visibleWindow)
+            }) else {
+                return nil
             }
+
+            matchedCandidateIndexes.insert(candidateIndex)
+            return candidates[candidateIndex]
         }
     }
 
@@ -59,9 +69,7 @@ final class PublicWorkspaceFilter {
             let candidateTitle = candidate.title.lowercased()
             let visibleTitle = visibleWindow.title.lowercased()
 
-            if candidateTitle == visibleTitle ||
-                candidateTitle.contains(visibleTitle) ||
-                visibleTitle.contains(candidateTitle) {
+            if candidateTitle == visibleTitle {
                 return true
             }
         }
