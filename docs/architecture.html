@@ -93,11 +93,11 @@ th { color: var(--text); }
     <h1>App Switcher Architecture</h1>
     <p>Human-readable architecture report for the native Swift/AppKit macOS app switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09.</p>
 
-    <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers an Option-Tab shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
+    <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
 
     <div class="stats">
       <div class="stat"><div class="value">1</div><div class="label">SwiftPM executable</div></div>
-      <div class="stat"><div class="value">10</div><div class="label">Swift source files</div></div>
+      <div class="stat"><div class="value">14</div><div class="label">Swift source files</div></div>
       <div class="stat"><div class="value">3</div><div class="label">macOS API families</div></div>
       <div class="stat"><div class="value">0</div><div class="label">Automated tests</div></div>
     </div>
@@ -115,10 +115,10 @@ th { color: var(--text); }
     </aside>
 
     <h2>Executive Summary</h2>
-    <p><span class="badge badge-green">Source-backed</span> App Switcher is a small native macOS prototype with explicit service boundaries for permissions, hotkey input, window inventory, workspace filtering, overlay rendering, and activation. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed app bundle, no configurable hotkey UI, and only a public-API approximation of Space membership.</p>
+    <p><span class="badge badge-green">Source-backed</span> App Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, and activation. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed app bundle, and only a public-API approximation of Space membership.</p>
 
     <h2>System Purpose</h2>
-    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS app switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and an Option-Tab shortcut (<code>README.md:1-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS app switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
     <p><span class="badge badge-green">Source-backed</span> The domain glossary defines an App Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
 
     <h2>Architecture Map</h2>
@@ -164,7 +164,7 @@ th { color: var(--text); }
       <path class="edge" d="M430 278 H500" marker-end="url(#arrow)"></path>
       <path class="edge" d="M670 278 H715" marker-end="url(#arrow)"></path>
       <text class="annot" x="235" y="58" text-anchor="middle">delegate</text>
-      <text class="annot" x="465" y="158" text-anchor="middle">Option-Tab</text>
+      <text class="annot" x="465" y="158" text-anchor="middle">shortcut</text>
       <text class="annot" x="465" y="268" text-anchor="middle">candidates</text>
     </svg>
 
@@ -176,7 +176,8 @@ th { color: var(--text); }
       <tbody>
         <tr><td>App shell</td><td>Starts the AppKit accessory app and composes services.</td><td><code>main.swift:3-8</code>, <code>AppDelegate.swift:11-23</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Status bar</td><td>Provides menu actions for showing the switcher, permission prompts, settings, and quit.</td><td><code>StatusBarController.swift:18-35</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Hotkey input</td><td>Registers Option-Tab through Carbon event hotkey APIs.</td><td><code>GlobalHotKeyMonitor.swift:18-60</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Hotkey input</td><td>Registers the selected Switcher Shortcut through Carbon event hotkey APIs.</td><td><code>GlobalHotKeyMonitor.swift</code>, <code>SwitcherShortcut.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Shortcut preferences</td><td>Stores the selected shortcut in UserDefaults and exposes preset selection from Settings.</td><td><code>SwitcherShortcut.swift</code>, <code>PreferencesWindowController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Session orchestration</td><td>Checks permissions, snapshots candidates, filters, renders overlay, navigates selection, and activates/cancels.</td><td><code>SwitcherSessionController.swift:29-145</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records.</td><td><code>WindowInventoryService.swift:6-81</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code> and screen intersection as a public-API visibility approximation.</td><td><code>PublicWorkspaceFilter.swift:25-88</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
@@ -186,13 +187,13 @@ th { color: var(--text); }
     </table>
 
     <h2>Data Model and Storage</h2>
-    <p><span class="badge badge-green">Source-backed</span> The only domain data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift:4-12</code>). <span class="badge badge-green">Source-backed</span> There is no persistent storage, database, cache, or migration layer in the current file inventory.</p>
+    <p><span class="badge badge-green">Source-backed</span> The main switching data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift:4-12</code>). <span class="badge badge-green">Source-backed</span> <code>SwitcherShortcut</code> models the available shortcut presets, and <code>SwitcherShortcutStore</code> persists the selected preset in UserDefaults.</p>
 
     <h2>External Integrations</h2>
     <p><span class="badge badge-green">Source-backed</span> The app integrates with macOS frameworks only: AppKit for app lifecycle, menu, overlay, and screens; Carbon for hotkey registration; ApplicationServices Accessibility for permission/window control; and Core Graphics for visible window-server state.</p>
     <ul>
       <li><code>AXIsProcessTrusted</code> and <code>AXIsProcessTrustedWithOptions</code> check/request Accessibility trust (<code>AccessibilityPermissionService.swift:6-15</code>).</li>
-      <li><code>RegisterEventHotKey</code> registers Option-Tab (<code>GlobalHotKeyMonitor.swift:48-56</code>).</li>
+      <li><code>RegisterEventHotKey</code> registers the selected Switcher Shortcut (<code>GlobalHotKeyMonitor.swift</code>).</li>
       <li><code>AXUIElementCopyAttributeValue</code> reads window attributes (<code>WindowInventoryService.swift:85-95</code>).</li>
       <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots (<code>PublicWorkspaceFilter.swift:25-29</code>).</li>
     </ul>
@@ -200,10 +201,10 @@ th { color: var(--text); }
     <h2>Key Flow: Switch Window</h2>
     <ol>
       <li><span class="badge badge-green">Source-backed</span> Carbon emits the registered hotkey callback and invokes <code>onPressed</code> (<code>GlobalHotKeyMonitor.swift:24-36</code>).</li>
-      <li><span class="badge badge-green">Source-backed</span> The delegate's closure calls <code>sessionController.handleSwitcherShortcut()</code> (<code>AppDelegate.swift:31-33</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> The delegate's closure calls <code>sessionController.handleSwitcherShortcut()</code> with the active shortcut's modifier flags.</li>
       <li><span class="badge badge-green">Source-backed</span> The session either advances selection if visible or begins a new session (<code>SwitcherSessionController.swift:29-36</code>).</li>
       <li><span class="badge badge-green">Source-backed</span> A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, and shows the overlay (<code>SwitcherSessionController.swift:39-58</code>).</li>
-      <li><span class="badge badge-green">Source-backed</span> Releasing Option triggers the global flags-changed monitor, logs the release, and activates the selected candidate (<code>SwitcherSessionController.swift:116-129</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> Releasing the configured shortcut modifier triggers the flags-changed monitor and activates the selected candidate.</li>
       <li><span class="badge badge-green">Source-backed</span> Activation raises/focuses the Accessibility window and activates the owning process (<code>WindowActivationService.swift:5-19</code>).</li>
     </ol>
 
@@ -215,6 +216,10 @@ th { color: var(--text); }
     <section class="decision">
       <h3>Public-API workspace approximation</h3>
       <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:25-88</code>). Tradeoff: distribution-friendly and less brittle, but exact Space membership may be imperfect.</p>
+    </section>
+    <section class="decision">
+      <h3>Preset-based Switcher Shortcut configuration</h3>
+      <p><span class="badge badge-green">Source-backed</span> Shortcut selection is limited to known presets and persisted with UserDefaults. Tradeoff: simple and reliable for the prototype, but it is not yet free-form key capture.</p>
     </section>
     <section class="decision">
       <h3>Service-per-responsibility composition</h3>
@@ -235,8 +240,8 @@ th { color: var(--text); }
       <p><span class="badge badge-amber">Gap</span> The SwiftPM package defines only an executable target and no test target (<code>Package.swift:10-18</code>). Severity: medium, because filtering and session transitions are behavior-heavy and easy to regress.</p>
     </section>
     <section class="risk">
-      <h3>Hotkey is hard-coded</h3>
-      <p><span class="badge badge-amber">Gap</span> Option-Tab is registered directly in <code>GlobalHotKeyMonitor</code> (<code>GlobalHotKeyMonitor.swift:48-56</code>). Severity: low for prototype, medium for public release.</p>
+      <h3>Shortcut capture is preset-based</h3>
+      <p><span class="badge badge-amber">Gap</span> Settings can choose from known Switcher Shortcut presets, but there is no free-form recorder yet. Severity: low for prototype, medium if public users need arbitrary shortcuts.</p>
     </section>
     <section class="risk">
       <h3>Overlay shows only seven candidates</h3>
@@ -246,7 +251,7 @@ th { color: var(--text); }
     <h2>Recommendations</h2>
     <ol>
       <li>Add a test target for candidate filtering, session state transitions, and activation fallback boundaries.</li>
-      <li>Introduce a configurable hotkey model before exploring Command-Tab replacement.</li>
+      <li>Add free-form shortcut capture only if preset shortcuts are too limiting in manual use.</li>
       <li>Build an app-bundle packaging path with signing/notarization before public distribution.</li>
       <li>Record manual test results for Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder.</li>
       <li>Add overlay overflow handling for more than seven candidates.</li>
@@ -262,6 +267,8 @@ th { color: var(--text); }
       <li><code>Sources/AppSwitcher/AccessibilityPermissionService.swift</code> - Accessibility trust and settings integration.</li>
       <li><code>Sources/AppSwitcher/StatusBarController.swift</code> - menu-bar UI and permission status.</li>
       <li><code>Sources/AppSwitcher/GlobalHotKeyMonitor.swift</code> - Carbon hotkey registration.</li>
+      <li><code>Sources/AppSwitcher/SwitcherShortcut.swift</code> - shortcut presets and persistence.</li>
+      <li><code>Sources/AppSwitcher/PreferencesWindowController.swift</code> - settings UI for shortcut selection.</li>
       <li><code>Sources/AppSwitcher/SwitcherSessionController.swift</code> - switcher session state, selection, activation trigger, monitors.</li>
       <li><code>Sources/AppSwitcher/WindowInventoryService.swift</code> - Accessibility window discovery and candidate filtering.</li>
       <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift</code> - visible-window public API workspace filter.</li>

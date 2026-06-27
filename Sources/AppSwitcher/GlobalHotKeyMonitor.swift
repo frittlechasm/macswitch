@@ -10,6 +10,7 @@ final class GlobalHotKeyMonitor {
     private var hotKeyRef: EventHotKeyRef?
     private var handlerRef: EventHandlerRef?
     private let onPressed: () -> Void
+    private(set) var shortcut: SwitcherShortcut?
 
     init(onPressed: @escaping () -> Void) {
         self.onPressed = onPressed
@@ -19,8 +20,8 @@ final class GlobalHotKeyMonitor {
         stop()
     }
 
-    /// Registers the Carbon Option-Tab hotkey and forwards presses to the callback.
-    func start() throws {
+    /// Registers the Carbon shortcut and forwards presses to the callback.
+    func start(shortcut: SwitcherShortcut) throws {
         stop()
 
         var eventType = EventTypeSpec(
@@ -55,8 +56,8 @@ final class GlobalHotKeyMonitor {
 
         let hotKeyID = EventHotKeyID(signature: fourCharacterCode("ASWT"), id: 1)
         let registerStatus = RegisterEventHotKey(
-            UInt32(kVK_Tab),
-            UInt32(optionKey),
+            shortcut.keyCode,
+            shortcut.carbonModifiers,
             hotKeyID,
             GetEventDispatcherTarget(),
             0,
@@ -71,6 +72,8 @@ final class GlobalHotKeyMonitor {
 
             throw GlobalHotKeyError.registerHotKeyFailed(registerStatus)
         }
+
+        self.shortcut = shortcut
     }
 
     /// Removes both the hotkey registration and its Carbon event handler.
@@ -84,6 +87,8 @@ final class GlobalHotKeyMonitor {
             RemoveEventHandler(handlerRef)
             self.handlerRef = nil
         }
+
+        shortcut = nil
     }
 }
 

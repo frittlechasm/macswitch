@@ -19,6 +19,7 @@ final class SwitcherSessionController {
     private var globalKeyMonitor: Any?
     private var localModifierMonitor: Any?
     private var globalModifierMonitor: Any?
+    private var activationModifierFlags: NSEvent.ModifierFlags = []
 
     init(
         permissionService: AccessibilityPermissionService,
@@ -34,18 +35,21 @@ final class SwitcherSessionController {
         self.overlayController = overlayController
     }
 
-    func handleSwitcherShortcut(trigger: SwitcherSessionTrigger = .hotkey) {
+    func handleSwitcherShortcut(
+        trigger: SwitcherSessionTrigger = .hotkey,
+        activationModifierFlags: NSEvent.ModifierFlags = []
+    ) {
         DispatchQueue.main.async {
             if self.overlayController.isVisible {
                 self.moveSelection(by: 1)
             } else {
-                self.beginSession(trigger: trigger)
+                self.beginSession(trigger: trigger, activationModifierFlags: activationModifierFlags)
             }
         }
     }
 
     /// Starts a switcher session by collecting current-workspace windows and showing the overlay.
-    private func beginSession(trigger: SwitcherSessionTrigger) {
+    private func beginSession(trigger: SwitcherSessionTrigger, activationModifierFlags: NSEvent.ModifierFlags) {
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
             Diagnostics.log("Accessibility permission is required before windows can be listed")
@@ -62,7 +66,7 @@ final class SwitcherSessionController {
             return
         }
 
-        installSessionEventMonitors(activateOnOptionRelease: trigger == .hotkey)
+        installSessionEventMonitors(activationModifierFlags: trigger == .hotkey ? activationModifierFlags : [])
         overlayController.show(candidates: candidates, selectedIndex: selectedIndex)
     }
 
@@ -93,12 +97,14 @@ final class SwitcherSessionController {
         overlayController.hide()
         candidates = []
         selectedIndex = 0
+        activationModifierFlags = []
         removeSessionEventMonitors()
     }
 
-    /// Captures keyboard navigation while the overlay is visible and optionally activates on Option release.
-    private func installSessionEventMonitors(activateOnOptionRelease: Bool) {
+    /// Captures keyboard navigation while the overlay is visible and optionally activates on shortcut modifier release.
+    private func installSessionEventMonitors(activationModifierFlags: NSEvent.ModifierFlags) {
         removeSessionEventMonitors()
+        self.activationModifierFlags = activationModifierFlags
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             self?.handleSessionKeyDown(event, canConsumeEvent: true) ?? event
@@ -108,7 +114,7 @@ final class SwitcherSessionController {
             _ = self?.handleSessionKeyDown(event, canConsumeEvent: false)
         }
 
-        guard activateOnOptionRelease else {
+        guard !activationModifierFlags.isEmpty else {
             return
         }
 
@@ -153,8 +159,8 @@ final class SwitcherSessionController {
             return
         }
 
-        if !event.modifierFlags.contains(.option) {
-            Diagnostics.log("Option released; activating selected window")
+        if !event.modifierFlags.contains(activationModifierFlags) {
+            Diagnostics.log("Switcher shortcut modifier released; activating selected window")
             activateSelection()
         }
     }

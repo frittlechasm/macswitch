@@ -6,10 +6,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // stay alive for the whole menu-bar app lifecycle.
     private var statusBarController: StatusBarController?
     private var hotKeyMonitor: GlobalHotKeyMonitor?
+    private var shortcutStore: SwitcherShortcutStore?
+    private var preferencesWindowController: PreferencesWindowController?
     private var sessionController: SwitcherSessionController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Diagnostics.log("App Switcher is running as a menu-bar app. Press Option-Tab to open it, or Ctrl-C in this terminal to stop it.")
+        Diagnostics.log("App Switcher is running as a menu-bar app. Use the configured Switcher Shortcut to open it, or Ctrl-C in this terminal to stop it.")
 
         // Composition root: construct the concrete services once at launch and
         // inject the same instances into the controllers that coordinate user
@@ -47,27 +49,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         self.sessionController = sessionController
 
+        let shortcutStore = SwitcherShortcutStore()
+        self.shortcutStore = shortcutStore
+
+        let hotKeyMonitor = GlobalHotKeyMonitor { [weak self, weak sessionController] in
+            let shortcut = self?.hotKeyMonitor?.shortcut ?? .defaultShortcut
+            sessionController?.handleSwitcherShortcut(activationModifierFlags: shortcut.eventModifierFlags)
+        }
+
+        self.hotKeyMonitor = hotKeyMonitor
+
+        let preferencesWindowController = PreferencesWindowController(
+            shortcutStore: shortcutStore,
+            onShortcutChanged: { [weak self] shortcut in
+                self?.registerShortcut(shortcut, persistOnSuccess: true) ?? false
+            }
+        )
+
+        self.preferencesWindowController = preferencesWindowController
+
         // The status menu shares the permission service and session controller
         // so menu actions use the same permission state and switcher flow as the
         // global shortcut.
         self.statusBarController = StatusBarController(
             permissionService: permissionService,
-            sessionController: sessionController
+            sessionController: sessionController,
+            preferencesWindowController: preferencesWindowController
         )
 
-        // The global hotkey is intentionally thin: it only translates Option-Tab
+        // The global hotkey is intentionally thin: it only translates the shortcut
         // into the session controller command, leaving switching behavior there.
-        let hotKeyMonitor = GlobalHotKeyMonitor {
-            sessionController.handleSwitcherShortcut()
-        }
-
-        do {
-            try hotKeyMonitor.start()
-            self.hotKeyMonitor = hotKeyMonitor
-            Diagnostics.log("Registered Option-Tab switcher shortcut")
-        } catch {
-            Diagnostics.log("Failed to register switcher shortcut: \(error)")
-        }
+        registerPreferredShortcutWithFallbacks()
 
         if !permissionService.isTrusted {
             Diagnostics.log("Accessibility permission is not granted. Use the menu-bar item or switcher shortcut to request it.")
@@ -79,5 +91,62 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         Diagnostics.log("App Switcher is stopping.")
         hotKeyMonitor?.stop()
+    }
+
+    @discardableResult
+    private func registerShortcut(_ shortcut: SwitcherShortcut, persistOnSuccess: Bool) -> Bool {
+        guard let hotKeyMonitor else {
+            return false
+        }
+
+        if hotKeyMonitor.shortcut == shortcut {
+            if persistOnSuccess {
+                shortcutStore?.selectedShortcut = shortcut
+            }
+            return true
+        }
+
+        let previousShortcut = hotKeyMonitor.shortcut
+
+        do {
+            try hotKeyMonitor.start(shortcut: shortcut)
+            if persistOnSuccess {
+                shortcutStore?.selectedShortcut = shortcut
+            }
+
+            Diagnostics.log("Registered \(shortcut.displayName) switcher shortcut")
+            return true
+        } catch {
+            Diagnostics.log("Failed to register \(shortcut.displayName) switcher shortcut: \(error)")
+            if persistOnSuccess, let previousShortcut {
+                do {
+                    try hotKeyMonitor.start(shortcut: previousShortcut)
+                    Diagnostics.log("Restored \(previousShortcut.displayName) switcher shortcut")
+                } catch {
+                    Diagnostics.log("Failed to restore \(previousShortcut.displayName) switcher shortcut: \(error)")
+                }
+            }
+            return false
+        }
+    }
+
+    private func registerPreferredShortcutWithFallbacks() {
+        guard let shortcutStore else {
+            return
+        }
+
+        let preferredShortcut = shortcutStore.selectedShortcut
+        let fallbackShortcuts = SwitcherShortcut.allCases.filter { $0 != preferredShortcut }
+
+        for shortcut in [preferredShortcut] + fallbackShortcuts {
+            if registerShortcut(shortcut, persistOnSuccess: shortcut != preferredShortcut) {
+                if shortcut != preferredShortcut {
+                    Diagnostics.log("Using fallback switcher shortcut \(shortcut.displayName)")
+                }
+                return
+            }
+        }
+
+        Diagnostics.log("No switcher shortcut could be registered")
     }
 }

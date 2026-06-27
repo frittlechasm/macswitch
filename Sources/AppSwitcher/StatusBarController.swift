@@ -4,11 +4,17 @@ final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
     private let permissionService: AccessibilityPermissionService
     private weak var sessionController: SwitcherSessionController?
+    private weak var preferencesWindowController: PreferencesWindowController?
     private let permissionStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
 
-    init(permissionService: AccessibilityPermissionService, sessionController: SwitcherSessionController) {
+    init(
+        permissionService: AccessibilityPermissionService,
+        sessionController: SwitcherSessionController,
+        preferencesWindowController: PreferencesWindowController
+    ) {
         self.permissionService = permissionService
         self.sessionController = sessionController
+        self.preferencesWindowController = preferencesWindowController
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         super.init()
@@ -24,6 +30,7 @@ final class StatusBarController: NSObject {
         menu.addItem(permissionStatusItem)
         menu.addItem(NSMenuItem(title: "Request Accessibility Permission", action: #selector(requestAccessibilityPermission), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Open Accessibility Settings", action: #selector(openAccessibilitySettings), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
@@ -47,6 +54,10 @@ final class StatusBarController: NSObject {
 
     @objc private func openAccessibilitySettings() {
         permissionService.openAccessibilitySettings()
+    }
+
+    @objc private func openSettings() {
+        preferencesWindowController?.show()
     }
 
     @objc private func quit() {

@@ -8,7 +8,7 @@ Native Swift/AppKit macOS app switcher prototype.
 - Uses Accessibility APIs for window discovery and activation.
 - Shows app icons plus window titles.
 - Filters to visible, non-minimized windows in the current macOS workspace context as far as public APIs allow.
-- Starts with `Option-Tab`; Command-Tab replacement is a future input-controller option.
+- Starts with `Option-Tab` by default . Check settings to set your own shortcut
 
 ## Run
 
@@ -26,4 +26,4 @@ mkdir -p "$HOME/Library/Logs"
 .build/debug/AppSwitcher >"$HOME/Library/Logs/AppSwitcher.log" 2>&1 &
 ```
 
-The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press `Option-Tab`.
+The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press the configured Switcher Shortcut. The default is `Option-Tab`.
