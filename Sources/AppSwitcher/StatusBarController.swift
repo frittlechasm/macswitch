@@ -23,10 +23,10 @@ final class StatusBarController: NSObject {
 
     /// Builds the menu-bar item and wires each menu action back to this controller.
     private func configure() {
-        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.2.swap", accessibilityDescription: "App Switcher")
+        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.2.swap", accessibilityDescription: "Mac Workspace Switcher")
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Show Switcher", action: #selector(showSwitcher), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Show Mac Workspace Switcher", action: #selector(showSwitcher), keyEquivalent: ""))
         menu.addItem(permissionStatusItem)
         menu.addItem(NSMenuItem(title: "Request Accessibility Permission", action: #selector(requestAccessibilityPermission), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Open Accessibility Settings", action: #selector(openAccessibilitySettings), keyEquivalent: ""))

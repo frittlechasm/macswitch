@@ -1,6 +1,6 @@
-# App Switcher
+# Mac Workspace Switcher
 
-Native Swift/AppKit macOS app switcher prototype.
+Native Swift/AppKit macOS workspace switcher prototype.
 
 ## Current Scope
 
@@ -8,22 +8,12 @@ Native Swift/AppKit macOS app switcher prototype.
 - Uses Accessibility APIs for window discovery and activation.
 - Shows app icons plus window titles.
 - Filters to visible, non-minimized windows in the current macOS workspace context as far as public APIs allow.
-- Starts with `Option-Tab` by default . Check settings to set your own shortcut
+- Starts with `Option-Tab` by default. Check Settings to set your own shortcut.
 
 ## Run
 
 ```sh
-swift run AppSwitcher
-```
-
-This starts a menu-bar app and keeps the terminal process running inside the AppKit event loop. That is expected. Stop it with `Ctrl-C` from the same terminal, or quit from the menu-bar icon.
-
-To run it without occupying the terminal after it is built:
-
-```sh
-swift build
-mkdir -p "$HOME/Library/Logs"
-.build/debug/AppSwitcher >"$HOME/Library/Logs/AppSwitcher.log" 2>&1 &
+scripts/run-app-bundle.sh
 ```
 
 The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press the configured Switcher Shortcut. The default is `Option-Tab`.

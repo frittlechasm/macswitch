@@ -2,7 +2,7 @@
 
 ## Glossary
 
-### App Switcher
+### Mac Workspace Switcher
 
 A keyboard-driven macOS overlay for moving focus between visible work items.
 
@@ -12,7 +12,7 @@ The currently active macOS Space/Desktop.
 
 ### Window Candidate
 
-A selectable top-level window that can receive focus from the App Switcher.
+A selectable top-level window that can receive focus from the Mac Workspace Switcher.
 
 ### Application Group
 

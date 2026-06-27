@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// A selectable top-level window that App Switcher can display and activate.
+/// A selectable top-level window that Mac Workspace Switcher can display and activate.
 struct WindowCandidate: Identifiable {
     let id: String
     let processIdentifier: pid_t

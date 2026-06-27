@@ -1,14 +1,16 @@
-# App Switcher Architecture
+# Mac Workspace Switcher Architecture
 
-Agent-readable architecture reference for the native Swift/AppKit macOS app switcher prototype. Keep `docs/architecture.html` in sync as the human-readable companion.
+Agent-readable architecture reference for the native Swift/AppKit macOS workspace switcher prototype. Keep `docs/architecture.html` in sync as the human-readable companion.
 
 ## Summary
 
-App Switcher is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.
+Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.
 
 ## Evidence Summary
 
 - `Package.swift` defines one executable target, `AppSwitcher`, targeting macOS 13.
+- `scripts/build-app-bundle.sh` wraps the SwiftPM executable in a development `.app` bundle named Mac Workspace Switcher for Accessibility identity testing.
+- `scripts/run-app-bundle.sh` builds and opens that bundle from the terminal without running the raw executable identity.
 - `Sources/AppSwitcher/main.swift` starts an AppKit accessory application.
 - `Sources/AppSwitcher/AppDelegate.swift` composes the core services.
 - `Sources/AppSwitcher/SwitcherSessionController.swift` builds and displays a switcher session.
@@ -18,6 +20,8 @@ App Switcher is a SwiftPM macOS executable that runs as a menu-bar accessory app
 ## Major Modules
 
 - App shell: starts the AppKit accessory app and wires services through `AppDelegate`.
+- Development app bundle: builds the SwiftPM executable and creates `.build/debug/Mac Workspace Switcher.app` with bundle metadata for macOS Accessibility Settings.
+- Bundle launcher: opens the generated `.app` bundle from terminal workflows so Accessibility trust is associated with Mac Workspace Switcher rather than the terminal or shell wrapper.
 - Status bar: exposes menu actions for showing the switcher, checking Accessibility permission, opening settings, and quitting.
 - Hotkey input: registers the selected Switcher Shortcut through Carbon event hotkey APIs.
 - Shortcut preferences: persists the selected shortcut in `UserDefaults` and exposes preset selection from the Settings window.
@@ -51,23 +55,25 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 
 ## Decisions
 
-- Native Swift/AppKit executable: keeps the prototype close to macOS APIs, but app-bundle packaging is not yet defined.
-- Public-API workspace approximation: avoids private Space APIs, but exact Space membership may be imperfect.
+- Native Swift/AppKit executable: keeps the prototype close to macOS APIs. A development app-bundle wrapper now exists for realistic Accessibility identity testing, while signed release packaging is still not defined.
+- Current switcher interaction model: manual validation on 2026-06-28 found opening, cycling, cancellation, and activation working as expected for the prototype.
+- Public-API workspace approximation: avoids private Space APIs. Manual validation on 2026-06-28 found filtering working as expected, but exact Space membership may still be imperfect across future macOS behavior changes.
 - Preset-based Switcher Shortcut configuration: keeps hotkey changes simple and avoids Command-Tab interception while the core product behavior is still being validated.
 - Service-per-responsibility composition: keeps the prototype simple, but dependency injection is manual and not yet test-oriented.
 
 ## Gaps and Risks
 
-- Space membership is approximate across Spaces, fullscreen apps, Stage Manager, and multiple displays.
+- Space membership is approximate by API design; manually validated behavior is working as expected, but future macOS, fullscreen, Stage Manager, and multi-display changes remain regression risks.
 - There is no automated test target yet.
+- Full Command-Tab-style event suppression is not implemented; the current model uses the configured Switcher Shortcut.
 - Switcher Shortcut choices are preset-based rather than free-form key capture.
 - The overlay currently caps visible candidates at seven and has no overflow affordance.
-- There is no signed/notarized app bundle, entitlement review, hardened runtime configuration, or release packaging path yet.
+- There is no signed/notarized release app bundle, entitlement review, hardened runtime configuration, or distribution packaging path yet.
 
 ## Recommendations
 
 - Add a SwiftPM test target for candidate filtering, session transitions, and activation boundaries.
 - Add free-form shortcut capture only if preset shortcuts are too limiting in manual use.
 - Build an app-bundle packaging path with signing and notarization before public distribution.
-- Record manual test results for Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder.
+- Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder in the manual regression matrix.
 - Add overlay overflow handling for more than seven candidates.

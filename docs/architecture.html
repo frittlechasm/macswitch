@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>App Switcher Architecture</title>
+  <title>Mac Workspace Switcher Architecture</title>
   <style>
 :root {
   --bg: #000;
@@ -90,8 +90,8 @@ th { color: var(--text); }
 <body>
   <main class="page">
     <p class="eyebrow">ARCHITECTURE REPORT · APP SWITCHER</p>
-    <h1>App Switcher Architecture</h1>
-    <p>Human-readable architecture report for the native Swift/AppKit macOS app switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09.</p>
+    <h1>Mac Workspace Switcher Architecture</h1>
+    <p>Human-readable architecture report for the native Swift/AppKit macOS workspace switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09.</p>
 
     <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
 
@@ -106,6 +106,8 @@ th { color: var(--text); }
       <h3>Evidence Summary</h3>
       <ul>
         <li><code>Package.swift:5-18</code> defines the SwiftPM executable target and macOS 13 platform.</li>
+        <li><code>scripts/build-app-bundle.sh</code> wraps the SwiftPM executable in a development <code>.app</code> bundle named Mac Workspace Switcher for Accessibility identity testing.</li>
+        <li><code>scripts/run-app-bundle.sh</code> builds and opens that bundle from the terminal without running the raw executable identity.</li>
         <li><code>Sources/AppSwitcher/main.swift:3-8</code> starts an AppKit accessory application.</li>
         <li><code>Sources/AppSwitcher/AppDelegate.swift:11-23</code> composes the services.</li>
         <li><code>Sources/AppSwitcher/SwitcherSessionController.swift:39-58</code> builds and displays a switcher session.</li>
@@ -115,14 +117,14 @@ th { color: var(--text); }
     </aside>
 
     <h2>Executive Summary</h2>
-    <p><span class="badge badge-green">Source-backed</span> App Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, and activation. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed app bundle, and only a public-API approximation of Space membership.</p>
+    <p><span class="badge badge-green">Source-backed</span> Mac Workspace Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, activation, and a development app-bundle wrapper for Accessibility identity testing. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed release app bundle, and uses a public-API approximation of Space membership that still needs regression coverage over time.</p>
 
     <h2>System Purpose</h2>
-    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS app switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
-    <p><span class="badge badge-green">Source-backed</span> The domain glossary defines an App Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The domain glossary defines Mac Workspace Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
 
     <h2>Architecture Map</h2>
-    <svg class="diagram" viewBox="0 0 900 390" role="img" aria-label="Architecture map for App Switcher">
+    <svg class="diagram" viewBox="0 0 900 390" role="img" aria-label="Architecture map for Mac Workspace Switcher">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
@@ -175,6 +177,8 @@ th { color: var(--text); }
       <thead><tr><th>Module</th><th>Purpose</th><th>Evidence</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>App shell</td><td>Starts the AppKit accessory app and composes services.</td><td><code>main.swift:3-8</code>, <code>AppDelegate.swift:11-23</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Development app bundle</td><td>Builds the SwiftPM executable and creates <code>.build/debug/Mac Workspace Switcher.app</code> with bundle metadata for macOS Accessibility Settings.</td><td><code>scripts/build-app-bundle.sh</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Bundle launcher</td><td>Opens the generated <code>.app</code> bundle from terminal workflows so Accessibility trust is associated with Mac Workspace Switcher rather than the terminal or shell wrapper.</td><td><code>scripts/run-app-bundle.sh</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Status bar</td><td>Provides menu actions for showing the switcher, permission prompts, settings, and quit.</td><td><code>StatusBarController.swift:18-35</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Hotkey input</td><td>Registers the selected Switcher Shortcut through Carbon event hotkey APIs.</td><td><code>GlobalHotKeyMonitor.swift</code>, <code>SwitcherShortcut.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Shortcut preferences</td><td>Stores the selected shortcut in UserDefaults and exposes preset selection from Settings.</td><td><code>SwitcherShortcut.swift</code>, <code>PreferencesWindowController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
@@ -211,11 +215,15 @@ th { color: var(--text); }
     <h2>Architecture Decisions</h2>
     <section class="decision">
       <h3>Native Swift/AppKit executable</h3>
-      <p><span class="badge badge-green">Source-backed</span> The project is a SwiftPM executable targeting macOS 13, with AppKit lifecycle code at runtime (<code>Package.swift:5-18</code>, <code>main.swift:3-8</code>). Tradeoff: fast native integration with macOS APIs, but no Xcode app-bundle packaging yet.</p>
+      <p><span class="badge badge-green">Source-backed</span> The project is a SwiftPM executable targeting macOS 13, with AppKit lifecycle code at runtime (<code>Package.swift:5-18</code>, <code>main.swift:3-8</code>). A development app-bundle wrapper now exists for realistic Accessibility identity testing, while signed release packaging is still not defined.</p>
+    </section>
+    <section class="decision">
+      <h3>Current switcher interaction model</h3>
+      <p><span class="badge badge-green">Source-backed</span> Manual validation on 2026-06-28 found opening, cycling, cancellation, and activation working as expected for the prototype. The current model uses the configured Switcher Shortcut rather than Command-Tab interception.</p>
     </section>
     <section class="decision">
       <h3>Public-API workspace approximation</h3>
-      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:25-88</code>). Tradeoff: distribution-friendly and less brittle, but exact Space membership may be imperfect.</p>
+      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:25-88</code>). Manual validation on 2026-06-28 found filtering working as expected. Tradeoff: distribution-friendly and less brittle, but exact Space membership may still be imperfect across future macOS behavior changes.</p>
     </section>
     <section class="decision">
       <h3>Preset-based Switcher Shortcut configuration</h3>
@@ -228,16 +236,20 @@ th { color: var(--text); }
 
     <h2>Security Controls</h2>
     <p><span class="badge badge-green">Source-backed</span> The app explicitly checks Accessibility trust before listing windows (<code>SwitcherSessionController.swift:39-44</code>) and exposes a settings path for permission management (<code>AccessibilityPermissionService.swift:18-26</code>). <span class="badge badge-green">Source-backed</span> It does not use network APIs, store secrets, or write user data in the current codebase.</p>
-    <p><span class="badge badge-amber">Gap</span> There is no signed/notarized app bundle, entitlement review, hardened runtime configuration, or release packaging yet. That matters because the product goal includes eventual public distribution.</p>
+    <p><span class="badge badge-amber">Gap</span> There is no signed/notarized release app bundle, entitlement review, hardened runtime configuration, or distribution packaging yet. That matters because the product goal includes eventual public distribution.</p>
 
     <h2>Gaps and Risks</h2>
     <section class="risk">
       <h3>Space membership is approximate</h3>
-      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, titles, PID, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:61-88</code>). Severity: medium, because edge cases across Spaces, fullscreen apps, Stage Manager, and multiple displays need manual validation.</p>
+      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, titles, PID, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:61-88</code>). Manual validation found behavior working as expected, but severity remains medium because future macOS, fullscreen, Stage Manager, and multi-display behavior can still regress.</p>
     </section>
     <section class="risk">
       <h3>No automated tests</h3>
       <p><span class="badge badge-amber">Gap</span> The SwiftPM package defines only an executable target and no test target (<code>Package.swift:10-18</code>). Severity: medium, because filtering and session transitions are behavior-heavy and easy to regress.</p>
+    </section>
+    <section class="risk">
+      <h3>No Command-Tab suppression</h3>
+      <p><span class="badge badge-amber">Gap</span> Full Command-Tab-style event suppression is not implemented. Severity: low for the current prototype because the validated model uses a configured alternate Switcher Shortcut.</p>
     </section>
     <section class="risk">
       <h3>Shortcut capture is preset-based</h3>
@@ -253,15 +265,17 @@ th { color: var(--text); }
       <li>Add a test target for candidate filtering, session state transitions, and activation fallback boundaries.</li>
       <li>Add free-form shortcut capture only if preset shortcuts are too limiting in manual use.</li>
       <li>Build an app-bundle packaging path with signing/notarization before public distribution.</li>
-      <li>Record manual test results for Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder.</li>
+      <li>Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder in the manual regression matrix.</li>
       <li>Add overlay overflow handling for more than seven candidates.</li>
     </ol>
 
     <h2>Evidence Index</h2>
     <ul>
       <li><code>README.md</code> - product scope, run command, permissions, shortcut.</li>
-      <li><code>CONTEXT.md</code> - domain glossary for App Switcher, Workspace, Window Candidate, Switcher Session, Switcher Shortcut.</li>
+      <li><code>CONTEXT.md</code> - domain glossary for Mac Workspace Switcher, Workspace, Window Candidate, Switcher Session, Switcher Shortcut.</li>
       <li><code>Package.swift</code> - SwiftPM package, platform, executable target.</li>
+      <li><code>scripts/build-app-bundle.sh</code> - development app-bundle wrapper for Accessibility identity testing.</li>
+      <li><code>scripts/run-app-bundle.sh</code> - terminal-friendly launcher that opens the generated app bundle.</li>
       <li><code>Sources/AppSwitcher/main.swift</code> - AppKit app startup and accessory activation.</li>
       <li><code>Sources/AppSwitcher/AppDelegate.swift</code> - service construction, startup diagnostics, permission check, hotkey lifecycle.</li>
       <li><code>Sources/AppSwitcher/AccessibilityPermissionService.swift</code> - Accessibility trust and settings integration.</li>

@@ -1,6 +1,6 @@
 - Keep this file small and concise.
 - Update this file only when a new repo-level agent workflow rule is introduced.
-- Product name is `App Switcher`; use that branding in UI, metadata, and docs.
+- Product name is `Mac Workspace Switcher`; use that branding in UI, metadata, and docs.
 - Keep agent-facing documents in `docs/`; do not add new root-level planning or explainer files.
 
 ## Source Of Truth

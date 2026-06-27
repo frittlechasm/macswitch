@@ -11,13 +11,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sessionController: SwitcherSessionController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Diagnostics.log("App Switcher is running as a menu-bar app. Use the configured Switcher Shortcut to open it, or Ctrl-C in this terminal to stop it.")
+        Diagnostics.log("Mac Workspace Switcher is running as a menu-bar app. Use the configured Switcher Shortcut to open it, or Ctrl-C in this terminal to stop it.")
 
         // Composition root: construct the concrete services once at launch and
         // inject the same instances into the controllers that coordinate user
         // actions. This keeps each service focused on one macOS integration.
 
-        // Checks and requests macOS Accessibility trust before App Switcher asks
+        // Checks and requests macOS Accessibility trust before Mac Workspace Switcher asks
         // other apps for their windows or tries to focus a selected window.
         let permissionService = AccessibilityPermissionService()
 
@@ -89,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        Diagnostics.log("App Switcher is stopping.")
+        Diagnostics.log("Mac Workspace Switcher is stopping.")
         hotKeyMonitor?.stop()
     }
 

@@ -17,7 +17,7 @@ final class PreferencesWindowController: NSWindowController {
             defer: false
         )
 
-        window.title = "App Switcher Settings"
+        window.title = "Mac Workspace Switcher Settings"
         window.isReleasedWhenClosed = false
         window.center()
 
@@ -42,10 +42,10 @@ final class PreferencesWindowController: NSWindowController {
             return
         }
 
-        let titleLabel = NSTextField(labelWithString: "Switcher Shortcut")
+        let titleLabel = NSTextField(labelWithString: "Mac Workspace Switcher Shortcut")
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
 
-        let helpLabel = NSTextField(labelWithString: "Choose the shortcut that opens and advances App Switcher.")
+        let helpLabel = NSTextField(labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher.")
         helpLabel.textColor = .secondaryLabelColor
         helpLabel.lineBreakMode = .byWordWrapping
         helpLabel.maximumNumberOfLines = 2
@@ -97,7 +97,7 @@ final class PreferencesWindowController: NSWindowController {
             statusLabel.stringValue = "Active shortcut: \(shortcut.displayName)"
         } else {
             refreshSelection()
-            statusLabel.stringValue = "Could not register that shortcut. App Switcher kept \(shortcutStore.selectedShortcut.displayName)."
+            statusLabel.stringValue = "Could not register that shortcut. Mac Workspace Switcher kept \(shortcutStore.selectedShortcut.displayName)."
         }
     }
 }
