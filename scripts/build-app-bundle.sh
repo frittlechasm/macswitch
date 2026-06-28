@@ -16,6 +16,10 @@ mkdir -p "$bundle_path/Contents/MacOS" "$bundle_path/Contents/Resources"
 
 cp "$build_dir/$executable_name" "$bundle_path/Contents/MacOS/$executable_name"
 
+if [[ -f "$repo_root/Resources/AppIcon.icns" ]]; then
+    cp "$repo_root/Resources/AppIcon.icns" "$bundle_path/Contents/Resources/AppIcon.icns"
+fi
+
 cat > "$bundle_path/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -27,6 +31,8 @@ cat > "$bundle_path/Contents/Info.plist" <<PLIST
     <string>$bundle_name</string>
     <key>CFBundleExecutable</key>
     <string>$executable_name</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>$bundle_id</string>
     <key>CFBundleInfoDictionaryVersion</key>
