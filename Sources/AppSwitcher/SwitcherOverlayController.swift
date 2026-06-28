@@ -25,17 +25,21 @@ final class SwitcherOverlayController {
         window.hasShadow = true
 
         materialView.material = .hudWindow
-        materialView.blendingMode = .behindWindow
+        materialView.blendingMode = .withinWindow
         materialView.state = .active
         materialView.wantsLayer = true
         materialView.layer?.cornerRadius = SwitcherOverlayContentView.metrics.backgroundCornerRadius
         materialView.layer?.cornerCurve = .continuous
         materialView.layer?.masksToBounds = true
+        materialView.layer?.backgroundColor = NSColor.clear.cgColor
 
         hostingView.frame = materialView.bounds
         hostingView.autoresizingMask = [.width, .height]
         hostingView.wantsLayer = true
+        hostingView.layer?.cornerRadius = SwitcherOverlayContentView.metrics.backgroundCornerRadius
+        hostingView.layer?.cornerCurve = .continuous
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        hostingView.layer?.masksToBounds = true
         materialView.addSubview(hostingView)
         window.contentView = materialView
     }
@@ -46,6 +50,7 @@ final class SwitcherOverlayController {
 
         let frame = preferredFrame(candidates: candidates)
         window.setFrame(frame, display: true)
+        window.invalidateShadow()
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -73,7 +78,7 @@ final class SwitcherOverlayController {
             y: screenFrame.midY - height / 2,
             width: width,
             height: height
-        )
+        ).integral
     }
 
 }
