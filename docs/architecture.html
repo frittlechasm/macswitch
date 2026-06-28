@@ -93,7 +93,7 @@ th { color: var(--text); }
     <h1>Mac Workspace Switcher Architecture</h1>
     <p>Human-readable architecture report for the native Swift/AppKit macOS workspace switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09.</p>
 
-    <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
+    <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders a SwiftUI-hosted overlay in an AppKit panel, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
 
     <div class="stats">
       <div class="stat"><div class="value">1</div><div class="label">SwiftPM executable</div></div>
@@ -120,7 +120,7 @@ th { color: var(--text); }
     <p><span class="badge badge-green">Source-backed</span> Mac Workspace Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, activation, and a development app-bundle wrapper for Accessibility identity testing. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed release app bundle, and uses a public-API approximation of Space membership that still needs regression coverage over time.</p>
 
     <h2>System Purpose</h2>
-    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, app icons plus window titles, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, a Command-Tab-style glass overlay with large app icons and a selected-only label with inline duplicate-app window details, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
     <p><span class="badge badge-green">Source-backed</span> The domain glossary defines Mac Workspace Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
 
     <h2>Architecture Map</h2>
@@ -185,7 +185,7 @@ th { color: var(--text); }
         <tr><td>Session orchestration</td><td>Checks permissions, snapshots candidates, filters, renders overlay, navigates selection, and activates/cancels.</td><td><code>SwitcherSessionController.swift:29-145</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records.</td><td><code>WindowInventoryService.swift:6-81</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code> and screen intersection as a public-API visibility approximation.</td><td><code>PublicWorkspaceFilter.swift:25-88</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
-        <tr><td>Overlay</td><td>Displays a floating borderless AppKit window with icons, titles, and selection ring.</td><td><code>SwitcherOverlayController.swift:11-24</code>, <code>SwitcherOverlayController.swift:76-143</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Overlay</td><td>Displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection ring. Label length must not change the fixed app-to-app gap.</td><td><code>SwitcherOverlayController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Activation</td><td>Raises/focuses the Accessibility window and activates the owning app.</td><td><code>WindowActivationService.swift:5-19</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
       </tbody>
     </table>
@@ -194,7 +194,7 @@ th { color: var(--text); }
     <p><span class="badge badge-green">Source-backed</span> The main switching data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift:4-12</code>). <span class="badge badge-green">Source-backed</span> <code>SwitcherShortcut</code> models the available shortcut presets, and <code>SwitcherShortcutStore</code> persists the selected preset in UserDefaults.</p>
 
     <h2>External Integrations</h2>
-    <p><span class="badge badge-green">Source-backed</span> The app integrates with macOS frameworks only: AppKit for app lifecycle, menu, overlay, and screens; Carbon for hotkey registration; ApplicationServices Accessibility for permission/window control; and Core Graphics for visible window-server state.</p>
+    <p><span class="badge badge-green">Source-backed</span> The app integrates with macOS frameworks only: AppKit for app lifecycle, menu, overlay window, system glass material, and screens; SwiftUI for overlay content layout; Carbon for hotkey registration; ApplicationServices Accessibility for permission/window control; and Core Graphics for visible window-server state.</p>
     <ul>
       <li><code>AXIsProcessTrusted</code> and <code>AXIsProcessTrustedWithOptions</code> check/request Accessibility trust (<code>AccessibilityPermissionService.swift:6-15</code>).</li>
       <li><code>RegisterEventHotKey</code> registers the selected Switcher Shortcut (<code>GlobalHotKeyMonitor.swift</code>).</li>
@@ -257,7 +257,7 @@ th { color: var(--text); }
     </section>
     <section class="risk">
       <h3>Overlay shows only seven candidates</h3>
-      <p><span class="badge badge-green">Source-backed</span> The overlay frame and drawing logic cap visible items at seven (<code>SwitcherOverlayController.swift:50-51</code>, <code>SwitcherOverlayController.swift:91-93</code>). <span class="badge badge-amber">Gap</span> There is no overflow affordance yet.</p>
+      <p><span class="badge badge-green">Source-backed</span> The overlay frame and layout logic cap visible items at seven and keep the selection centered as the visible slice changes (<code>SwitcherOverlayController.swift</code>). <span class="badge badge-amber">Gap</span> There is no overflow count or scrollbar affordance yet.</p>
     </section>
 
     <h2>Recommendations</h2>
@@ -286,7 +286,7 @@ th { color: var(--text); }
       <li><code>Sources/AppSwitcher/SwitcherSessionController.swift</code> - switcher session state, selection, activation trigger, monitors.</li>
       <li><code>Sources/AppSwitcher/WindowInventoryService.swift</code> - Accessibility window discovery and candidate filtering.</li>
       <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift</code> - visible-window public API workspace filter.</li>
-      <li><code>Sources/AppSwitcher/SwitcherOverlayController.swift</code> - AppKit overlay window and custom drawing.</li>
+      <li><code>Sources/AppSwitcher/SwitcherOverlayController.swift</code> - AppKit overlay window, system glass container, and SwiftUI-hosted overlay content.</li>
       <li><code>Sources/AppSwitcher/WindowActivationService.swift</code> - exact-window and app fallback activation.</li>
       <li><code>Sources/AppSwitcher/WindowCandidate.swift</code> - candidate record shape.</li>
       <li><code>Sources/AppSwitcher/Diagnostics.swift</code> - logging helper.</li>

@@ -4,7 +4,7 @@ Agent-readable architecture reference for the native Swift/AppKit macOS workspac
 
 ## Summary
 
-Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders an AppKit overlay, and activates the selected window through Accessibility with an app-level fallback.
+Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders a SwiftUI-hosted overlay in an AppKit panel, and activates the selected window through Accessibility with an app-level fallback.
 
 ## Evidence Summary
 
@@ -28,7 +28,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - Session orchestration: checks permission, snapshots candidates, filters to current-workspace candidates, renders the overlay, advances selection, and activates or cancels.
 - Window inventory: uses `NSWorkspace` and Accessibility to build `WindowCandidate` records.
 - Workspace filter: uses `CGWindowListCopyWindowInfo` and screen intersection as a public-API visibility approximation.
-- Overlay: displays a floating borderless AppKit window with app icons, titles, and selection state.
+- Overlay: displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection state. Label length must not change the fixed app-to-app gap.
 - Activation: raises/focuses the Accessibility window and activates the owning app.
 
 ## Data Model
@@ -39,7 +39,8 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 
 ## External Integrations
 
-- AppKit for app lifecycle, menu-bar UI, overlay windows, drawing, screens, and application activation.
+- AppKit for app lifecycle, menu-bar UI, overlay windows, system glass material, screens, and application activation.
+- SwiftUI for the overlay content layout, app icons, selected label, and selection ring.
 - Carbon for global hotkey registration.
 - ApplicationServices Accessibility for permission checks, window discovery, and window focus.
 - Core Graphics for visible window-server snapshots used by the workspace filter.
@@ -67,7 +68,7 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 - There is no automated test target yet.
 - Full Command-Tab-style event suppression is not implemented; the current model uses the configured Switcher Shortcut.
 - Switcher Shortcut choices are preset-based rather than free-form key capture.
-- The overlay currently caps visible candidates at seven and has no overflow affordance.
+- The overlay currently caps visible candidates at seven and keeps the selection centered as the visible slice changes, but it has no overflow count or scrollbar affordance.
 - There is no signed/notarized release app bundle, entitlement review, hardened runtime configuration, or distribution packaging path yet.
 
 ## Recommendations

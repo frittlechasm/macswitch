@@ -1,8 +1,10 @@
 import AppKit
+import SwiftUI
 
 final class SwitcherOverlayController {
     private let window: NSWindow
-    private let overlayView = SwitcherOverlayView()
+    private let materialView = NSVisualEffectView()
+    private let hostingView = NSHostingView(rootView: SwitcherOverlayContentView(candidates: [], selectedIndex: 0))
 
     var isVisible: Bool {
         window.isVisible
@@ -21,21 +23,34 @@ final class SwitcherOverlayController {
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.hasShadow = true
-        window.contentView = overlayView
+
+        materialView.material = .hudWindow
+        materialView.blendingMode = .behindWindow
+        materialView.state = .active
+        materialView.wantsLayer = true
+        materialView.layer?.cornerRadius = SwitcherOverlayContentView.metrics.backgroundCornerRadius
+        materialView.layer?.cornerCurve = .continuous
+        materialView.layer?.masksToBounds = true
+
+        hostingView.frame = materialView.bounds
+        hostingView.autoresizingMask = [.width, .height]
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        materialView.addSubview(hostingView)
+        window.contentView = materialView
     }
 
     /// Populates and centers the floating overlay for the current switcher session.
     func show(candidates: [WindowCandidate], selectedIndex: Int) {
-        overlayView.candidates = candidates
-        overlayView.selectedIndex = selectedIndex
+        hostingView.rootView = SwitcherOverlayContentView(candidates: candidates, selectedIndex: selectedIndex)
 
-        let frame = preferredFrame(candidateCount: candidates.count)
+        let frame = preferredFrame(candidates: candidates)
         window.setFrame(frame, display: true)
         window.makeKeyAndOrderFront(nil)
     }
 
     func updateSelection(_ selectedIndex: Int) {
-        overlayView.selectedIndex = selectedIndex
+        hostingView.rootView = SwitcherOverlayContentView(candidates: hostingView.rootView.candidates, selectedIndex: selectedIndex)
     }
 
     func hide() {
@@ -43,15 +58,15 @@ final class SwitcherOverlayController {
     }
 
     /// Sizes the overlay around up to seven visible items and centers it on the main screen.
-    private func preferredFrame(candidateCount: Int) -> CGRect {
+    private func preferredFrame(candidates: [WindowCandidate]) -> CGRect {
         let screenFrame = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 900, height: 600)
-        let itemWidth: CGFloat = 112
-        let itemHeight: CGFloat = 118
-        let horizontalPadding: CGFloat = 28
-        let verticalPadding: CGFloat = 24
-        let visibleCount = min(max(candidateCount, 1), 7)
-        let width = CGFloat(visibleCount) * itemWidth + horizontalPadding * 2
-        let height = itemHeight + verticalPadding * 2
+        let metrics = SwitcherOverlayContentView.metrics
+        let visibleCount = min(max(candidates.count, 1), metrics.maximumVisibleItems)
+        let width = min(
+            CGFloat(visibleCount) * metrics.itemWidth + CGFloat(max(visibleCount - 1, 0)) * metrics.itemSpacing + metrics.contentInset * 2,
+            screenFrame.width - metrics.screenMargin * 2
+        )
+        let height = metrics.itemHeight + metrics.contentInset * 2
 
         return CGRect(
             x: screenFrame.midX - width / 2,
@@ -59,6 +74,149 @@ final class SwitcherOverlayController {
             width: width,
             height: height
         )
+    }
+
+}
+
+private struct SwitcherOverlayContentView: View {
+    struct Metrics {
+        let maximumVisibleItems = 7
+        let screenMargin: CGFloat = 28
+        let iconSize: CGFloat = 130
+        let selectorInset: CGFloat = 2
+        let backgroundCornerRadius: CGFloat = 31
+        let contentInset: CGFloat = 16
+        let itemSpacing: CGFloat = 14
+        let labelTopGap: CGFloat = 5
+        let labelHeight: CGFloat = 10
+        let labelFontSize: CGFloat = 13
+
+        var selectorCornerRadius: CGFloat { backgroundCornerRadius }
+
+        var selectorSize: CGFloat { iconSize - selectorInset * 2 }
+
+        var itemWidth: CGFloat { iconSize }
+
+        var itemHeight: CGFloat {
+            iconSize + labelTopGap + labelHeight
+        }
+    }
+
+    static let metrics = Metrics()
+
+    let candidates: [WindowCandidate]
+    let selectedIndex: Int
+
+    var body: some View {
+        let visibleRange = visibleCandidateRange()
+        let visibleCandidates = Array(candidates[visibleRange])
+        let itemWidth = Self.metrics.itemWidth
+
+        HStack(alignment: .top, spacing: Self.metrics.itemSpacing) {
+            ForEach(Array(visibleCandidates.enumerated()), id: \.element.id) { offset, candidate in
+                let index = visibleRange.lowerBound + offset
+                candidateView(candidate: candidate, index: index, itemWidth: itemWidth)
+                    .frame(width: itemWidth, height: Self.metrics.itemHeight, alignment: .top)
+            }
+        }
+        .padding(Self.metrics.contentInset)
+        .background(
+            RoundedRectangle(cornerRadius: Self.metrics.backgroundCornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    /// Chooses the contiguous slice of candidates to draw around the current selection.
+    private func visibleCandidateRange() -> Range<Int> {
+        let visibleCount = min(candidates.count, Self.metrics.maximumVisibleItems)
+        let halfWindow = visibleCount / 2
+        let lowerBound = min(
+            max(selectedIndex - halfWindow, 0),
+            max(candidates.count - visibleCount, 0)
+        )
+
+        return lowerBound..<(lowerBound + visibleCount)
+    }
+
+    private func duplicateWindowDetail(for candidate: WindowCandidate, at index: Int) -> String? {
+        let matches = candidates.filter { sameApplication($0, candidate) }
+        guard matches.count > 1 else {
+            return nil
+        }
+
+        let title = candidate.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty {
+            return title
+        }
+
+        return "Window \(index + 1) - \(Int(candidate.frame.width))x\(Int(candidate.frame.height))"
+    }
+
+    private func selectedLabel(for candidate: WindowCandidate, at index: Int) -> String {
+        if let detail = duplicateWindowDetail(for: candidate, at: index) {
+            return "\(candidate.appName) - \(detail)"
+        }
+
+        return candidate.appName
+    }
+
+    private func sameApplication(_ first: WindowCandidate, _ second: WindowCandidate) -> Bool {
+        if let firstBundleIdentifier = first.bundleIdentifier,
+           let secondBundleIdentifier = second.bundleIdentifier {
+            return firstBundleIdentifier == secondBundleIdentifier
+        }
+
+        return first.appName == second.appName
+    }
+
+    @ViewBuilder
+    private func candidateView(candidate: WindowCandidate, index: Int, itemWidth: CGFloat) -> some View {
+        let selected = index == selectedIndex
+        VStack(spacing: Self.metrics.labelTopGap) {
+            ZStack {
+                if selected {
+                    RoundedRectangle(cornerRadius: Self.metrics.selectorCornerRadius, style: .continuous)
+                        .fill(Color.white.opacity(0.20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Self.metrics.selectorCornerRadius, style: .continuous)
+                                .stroke(Color.white.opacity(0.58), lineWidth: 2)
+                        )
+                        .frame(
+                            width: Self.metrics.selectorSize,
+                            height: Self.metrics.selectorSize
+                        )
+                }
+
+                if let icon = candidate.appIcon {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: Self.metrics.iconSize, height: Self.metrics.iconSize)
+                }
+            }
+            .frame(
+                width: Self.metrics.iconSize,
+                height: Self.metrics.iconSize
+            )
+
+            if selected {
+                Text(selectedLabel(for: candidate, at: index))
+                    .font(.system(size: Self.metrics.labelFontSize, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(
+                        width: itemWidth,
+                        height: Self.metrics.labelHeight,
+                        alignment: .center
+                    )
+            } else {
+                Color.clear
+                    .frame(height: Self.metrics.labelHeight)
+            }
+        }
+        .frame(width: itemWidth, height: Self.metrics.itemHeight, alignment: .top)
+        .accessibilityLabel(selectedLabel(for: candidate, at: index))
     }
 }
 
@@ -70,103 +228,5 @@ private final class SwitcherOverlayPanel: NSPanel {
 
     override var canBecomeMain: Bool {
         false
-    }
-}
-
-final class SwitcherOverlayView: NSView {
-    var candidates: [WindowCandidate] = [] {
-        didSet { needsDisplay = true }
-    }
-
-    var selectedIndex: Int = 0 {
-        didSet { needsDisplay = true }
-    }
-
-    override var isFlipped: Bool {
-        true
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-
-        let backgroundPath = NSBezierPath(roundedRect: bounds, xRadius: 18, yRadius: 18)
-        NSColor.windowBackgroundColor.withAlphaComponent(0.86).setFill()
-        backgroundPath.fill()
-
-        NSColor.separatorColor.withAlphaComponent(0.4).setStroke()
-        backgroundPath.lineWidth = 1
-        backgroundPath.stroke()
-
-        guard !candidates.isEmpty else {
-            return
-        }
-
-        let itemWidth: CGFloat = 112
-        let visibleRange = visibleCandidateRange()
-        let visibleCandidates = candidates[visibleRange]
-        let startX = (bounds.width - CGFloat(visibleCandidates.count) * itemWidth) / 2
-
-        for (offset, candidate) in visibleCandidates.enumerated() {
-            draw(candidate: candidate, index: visibleRange.lowerBound + offset, in: CGRect(
-                x: startX + CGFloat(offset) * itemWidth,
-                y: 24,
-                width: itemWidth,
-                height: bounds.height - 48
-            ))
-        }
-    }
-
-    /// Chooses the contiguous slice of candidates to draw around the current selection.
-    private func visibleCandidateRange() -> Range<Int> {
-        let visibleCount = min(candidates.count, 7)
-        let halfWindow = visibleCount / 2
-        let lowerBound = min(
-            max(selectedIndex - halfWindow, 0),
-            max(candidates.count - visibleCount, 0)
-        )
-
-        return lowerBound..<(lowerBound + visibleCount)
-    }
-
-    /// Draws one candidate cell, including selection highlight, app icon, title, and app name.
-    private func draw(candidate: WindowCandidate, index: Int, in rect: CGRect) {
-        let selected = index == selectedIndex
-        let selectionRect = rect.insetBy(dx: 8, dy: 0)
-
-        if selected {
-            let selectionPath = NSBezierPath(roundedRect: selectionRect, xRadius: 12, yRadius: 12)
-            NSColor.controlAccentColor.withAlphaComponent(0.20).setFill()
-            selectionPath.fill()
-            NSColor.controlAccentColor.withAlphaComponent(0.85).setStroke()
-            selectionPath.lineWidth = 2
-            selectionPath.stroke()
-        }
-
-        let iconRect = CGRect(x: rect.midX - 24, y: rect.minY + 12, width: 48, height: 48)
-        if let icon = candidate.appIcon {
-            icon.draw(in: iconRect)
-        }
-
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
-        paragraphStyle.lineBreakMode = .byTruncatingTail
-
-        let titleAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: selected ? .semibold : .regular),
-            .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: paragraphStyle
-        ]
-
-        let appAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10),
-            .foregroundColor: NSColor.secondaryLabelColor,
-            .paragraphStyle: paragraphStyle
-        ]
-
-        let titleRect = CGRect(x: rect.minX + 10, y: iconRect.maxY + 12, width: rect.width - 20, height: 18)
-        candidate.displayTitle.draw(with: titleRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: titleAttributes)
-
-        let appRect = CGRect(x: rect.minX + 10, y: titleRect.maxY + 4, width: rect.width - 20, height: 16)
-        candidate.appName.draw(with: appRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: appAttributes)
     }
 }
