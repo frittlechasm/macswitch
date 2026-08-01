@@ -22,7 +22,7 @@ final class SwitcherOverlayController {
         window.backgroundColor = .clear
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.hasShadow = true
+        window.hasShadow = false
 
         materialView.material = .hudWindow
         materialView.blendingMode = .withinWindow

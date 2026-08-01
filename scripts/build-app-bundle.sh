@@ -6,6 +6,7 @@ configuration="${CONFIGURATION:-debug}"
 bundle_name="Mac Workspace Switcher"
 bundle_id="com.frittlechasm.mac-workspace-switcher"
 executable_name="AppSwitcher"
+signing_identity="${CODESIGN_IDENTITY:-Mac Workspace Switcher Local Development}"
 build_dir="$repo_root/.build/$configuration"
 bundle_path="$build_dir/$bundle_name.app"
 
@@ -56,5 +57,13 @@ cat > "$bundle_path/Contents/Info.plist" <<PLIST
 PLIST
 
 printf 'APPL????' > "$bundle_path/Contents/PkgInfo"
+
+if ! codesign --force --sign "$signing_identity" --timestamp=none "$bundle_path"; then
+    echo "Unable to sign Mac Workspace Switcher with identity: $signing_identity" >&2
+    echo "Create a local code-signing identity or set CODESIGN_IDENTITY." >&2
+    exit 1
+fi
+
+codesign --verify --deep --strict --verbose=2 "$bundle_path"
 
 echo "$bundle_path"
