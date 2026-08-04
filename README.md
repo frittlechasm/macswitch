@@ -7,7 +7,7 @@ Native Swift/AppKit macOS workspace switcher prototype.
 - Uses public macOS APIs only.
 - Uses Accessibility APIs for window discovery and activation.
 - Shows a Command-Tab-style glass overlay with large app icons and a selected-only label with inline window details when one app has multiple candidates.
-- Filters to visible, non-minimized windows in the current macOS workspace context as far as public APIs allow.
+- Filters to visible, non-minimized, ordinary windows in the current macOS workspace context as far as public APIs allow. Elevated floating windows such as browser Picture-in-Picture are excluded.
 - Starts with `Option-Tab` by default. Check Settings to set your own shortcut.
 
 ## Run

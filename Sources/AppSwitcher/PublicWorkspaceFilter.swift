@@ -2,28 +2,37 @@ import CoreGraphics
 
 struct VisibleWindowSnapshot {
     let processIdentifier: pid_t
-    let title: String
     let frame: CGRect
+    let layer: Int
 }
 
 final class PublicWorkspaceFilter {
     /// Keeps candidates that appear in the public on-screen window list, ordered front-to-back.
     func filter(_ candidates: [WindowCandidate]) -> [WindowCandidate] {
-        let visibleWindows = currentVisibleWindows()
+        filter(candidates, visibleWindows: currentVisibleWindows())
+    }
+
+    /// Excludes elevated windows such as Picture-in-Picture after matching them to AX candidates.
+    private func filter(
+        _ candidates: [WindowCandidate],
+        visibleWindows: [VisibleWindowSnapshot]
+    ) -> [WindowCandidate] {
         var matchedCandidateIndexes = Set<Int>()
 
         return visibleWindows.compactMap { visibleWindow in
-            guard let candidateIndex = candidates.indices.first(where: { index in
-                guard !matchedCandidateIndexes.contains(index) else {
-                    return false
-                }
-
-                return isVisibleMatch(candidate: candidates[index], visibleWindow: visibleWindow)
-            }) else {
+            guard let candidateIndex = bestCandidateIndex(
+                for: visibleWindow,
+                candidates: candidates,
+                excluding: matchedCandidateIndexes
+            ) else {
                 return nil
             }
 
             matchedCandidateIndexes.insert(candidateIndex)
+            guard visibleWindow.layer == 0 else {
+                return nil
+            }
+
             return candidates[candidateIndex]
         }
     }
@@ -38,12 +47,12 @@ final class PublicWorkspaceFilter {
         return windowInfo.compactMap { info in
             guard
                 let ownerPID = info[kCGWindowOwnerPID as String] as? pid_t,
-                let bounds = info[kCGWindowBounds as String] as? [String: CGFloat]
+                let bounds = info[kCGWindowBounds as String] as? [String: CGFloat],
+                let layer = info[kCGWindowLayer as String] as? Int
             else {
                 return nil
             }
 
-            let title = info[kCGWindowName as String] as? String ?? ""
             let frame = CGRect(
                 x: bounds["X"] ?? 0,
                 y: bounds["Y"] ?? 0,
@@ -55,35 +64,62 @@ final class PublicWorkspaceFilter {
                 return nil
             }
 
-            return VisibleWindowSnapshot(processIdentifier: ownerPID, title: title, frame: frame)
+            return VisibleWindowSnapshot(
+                processIdentifier: ownerPID,
+                frame: frame,
+                layer: layer
+            )
         }
     }
 
-    /// Matches AX candidates to public windows by process, then title or substantial frame overlap.
-    private func isVisibleMatch(candidate: WindowCandidate, visibleWindow: VisibleWindowSnapshot) -> Bool {
-        guard candidate.processIdentifier == visibleWindow.processIdentifier else {
-            return false
-        }
-
-        if !visibleWindow.title.isEmpty {
-            let candidateTitle = candidate.title.lowercased()
-            let visibleTitle = visibleWindow.title.lowercased()
-
-            if candidateTitle == visibleTitle {
-                return true
+    /// Chooses the unmatched AX candidate whose frame most closely matches the Core Graphics window.
+    private func bestCandidateIndex(
+        for visibleWindow: VisibleWindowSnapshot,
+        candidates: [WindowCandidate],
+        excluding matchedCandidateIndexes: Set<Int>
+    ) -> Int? {
+        candidates.indices.compactMap { index -> (index: Int, score: CGFloat)? in
+            guard !matchedCandidateIndexes.contains(index) else {
+                return nil
             }
+
+            guard let score = matchScore(
+                candidate: candidates[index],
+                visibleWindow: visibleWindow
+            ) else {
+                return nil
+            }
+
+            return (index, score)
+        }.max { first, second in
+            first.score < second.score
+        }?.index
+    }
+
+    /// Scores same-process windows using intersection over union so containment cannot dominate.
+    private func matchScore(
+        candidate: WindowCandidate,
+        visibleWindow: VisibleWindowSnapshot
+    ) -> CGFloat? {
+        guard candidate.processIdentifier == visibleWindow.processIdentifier else {
+            return nil
         }
 
         let intersection = candidate.frame.intersection(visibleWindow.frame)
         guard !intersection.isNull, !intersection.isEmpty else {
-            return false
+            return nil
         }
 
         let candidateArea = candidate.frame.width * candidate.frame.height
-        guard candidateArea > 0 else {
-            return false
+        let visibleWindowArea = visibleWindow.frame.width * visibleWindow.frame.height
+        let intersectionArea = intersection.width * intersection.height
+        let unionArea = candidateArea + visibleWindowArea - intersectionArea
+
+        guard unionArea > 0 else {
+            return nil
         }
 
-        return (intersection.width * intersection.height) / candidateArea > 0.5
+        let score = intersectionArea / unionArea
+        return score > 0.5 ? score : nil
     }
 }

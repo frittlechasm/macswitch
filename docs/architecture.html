@@ -97,7 +97,7 @@ th { color: var(--text); }
   <main class="page">
     <p class="eyebrow">ARCHITECTURE REPORT · APP SWITCHER</p>
     <h1>Mac Workspace Switcher Architecture</h1>
-    <p>Human-readable architecture report for the native Swift/AppKit macOS workspace switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09 and updated on 2026-08-01.</p>
+    <p>Human-readable architecture report for the native Swift/AppKit macOS workspace switcher prototype. The agent-readable companion is <code>docs/architecture.md</code>. Prepared for engineering review on 2026-06-09 and updated on 2026-08-04.</p>
 
     <blockquote><p>The system is a SwiftPM macOS executable that runs as a menu-bar accessory app, registers a persisted Switcher Shortcut, builds a current-workspace window candidate list from public macOS APIs, renders a SwiftUI-hosted overlay in an AppKit panel, and activates the selected window through Accessibility with an app-level fallback.</p></blockquote>
 
@@ -118,7 +118,7 @@ th { color: var(--text); }
         <li><code>Sources/AppSwitcher/AppDelegate.swift:11-23</code> composes the services.</li>
         <li><code>Sources/AppSwitcher/SwitcherSessionController.swift:39-58</code> builds and displays a switcher session.</li>
         <li><code>Sources/AppSwitcher/WindowInventoryService.swift:6-81</code> enumerates apps and Accessibility windows.</li>
-        <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift:25-88</code> uses Core Graphics visible-window state to approximate the active workspace.</li>
+        <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift:9-124</code> uses Core Graphics visible-window state and window layers to approximate the active workspace while excluding elevated floating windows.</li>
       </ul>
     </aside>
 
@@ -126,7 +126,7 @@ th { color: var(--text); }
     <p><span class="badge badge-green">Source-backed</span> Mac Workspace Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, activation, and a development app-bundle wrapper for Accessibility identity testing. <span class="badge badge-amber">Gap</span> The app has no automated tests, no signed release app bundle, and uses a public-API approximation of Space membership that still needs regression coverage over time.</p>
 
     <h2>System Purpose</h2>
-    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, a Command-Tab-style glass overlay with large app icons and a selected-only label with inline duplicate-app window details, visible non-minimized workspace filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, a Command-Tab-style glass overlay with large app icons and a selected-only label with inline duplicate-app window details, visible non-minimized ordinary-window filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
     <p><span class="badge badge-green">Source-backed</span> The domain glossary defines Mac Workspace Switcher as a keyboard-driven macOS overlay for moving focus between visible work items, and a Workspace as the active macOS Space/Desktop (<code>CONTEXT.md:5-11</code>).</p>
 
     <h2>Architecture Map</h2>
@@ -191,7 +191,7 @@ th { color: var(--text); }
         <tr><td>Shortcut preferences</td><td>Stores the selected shortcut in UserDefaults and exposes preset selection from Settings.</td><td><code>SwitcherShortcut.swift</code>, <code>PreferencesWindowController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Session orchestration</td><td>Checks permissions, snapshots candidates, filters, renders overlay, navigates selection, and activates/cancels.</td><td><code>SwitcherSessionController.swift:29-145</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records.</td><td><code>WindowInventoryService.swift:6-81</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code> and screen intersection as a public-API visibility approximation.</td><td><code>PublicWorkspaceFilter.swift:25-88</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
+        <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code>, the strongest same-process frame overlap, and Core Graphics window layers as a public-API visibility approximation. Matched elevated windows are consumed but not returned as candidates.</td><td><code>PublicWorkspaceFilter.swift:9-124</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
         <tr><td>Overlay</td><td>Displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection ring. Label length must not change the fixed app-to-app gap.</td><td><code>SwitcherOverlayController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Activation</td><td>Raises/focuses the Accessibility window and activates the owning app.</td><td><code>WindowActivationService.swift:5-19</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
       </tbody>
@@ -207,7 +207,7 @@ th { color: var(--text); }
       <li><code>AXIsProcessTrusted</code> and <code>AXIsProcessTrustedWithOptions</code> check/request Accessibility trust (<code>AccessibilityPermissionService.swift:6-15</code>).</li>
       <li><code>RegisterEventHotKey</code> registers the selected Switcher Shortcut (<code>GlobalHotKeyMonitor.swift</code>).</li>
       <li><code>AXUIElementCopyAttributeValue</code> reads window attributes (<code>WindowInventoryService.swift:85-95</code>).</li>
-      <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots (<code>PublicWorkspaceFilter.swift:25-29</code>).</li>
+      <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots, including window layer metadata (<code>PublicWorkspaceFilter.swift:40-72</code>).</li>
     </ul>
 
     <h2>Key Flow: Switch Window</h2>
@@ -231,7 +231,11 @@ th { color: var(--text); }
     </section>
     <section class="decision">
       <h3>Public-API workspace approximation</h3>
-      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:25-88</code>). Manual validation on 2026-06-28 found filtering working as expected. Tradeoff: distribution-friendly and less brittle, but exact Space membership may still be imperfect across future macOS behavior changes.</p>
+      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:9-124</code>). Manual validation on 2026-06-28 found filtering working as expected. Tradeoff: distribution-friendly and less brittle, but exact Space membership may still be imperfect across future macOS behavior changes.</p>
+    </section>
+    <section class="decision">
+      <h3>Layer-zero candidate eligibility</h3>
+      <p><span class="badge badge-green">Source-backed</span> Ordinary Core Graphics layer-zero windows remain candidates. Elevated windows are matched to the unmatched same-process candidate with the highest intersection-over-union score, then consumed and excluded. This removes browser Picture-in-Picture and other floating windows without app-specific rules or localized title matching (<code>PublicWorkspaceFilter.swift:15-38</code>, <code>PublicWorkspaceFilter.swift:75-123</code>).</p>
     </section>
     <section class="decision">
       <h3>Preset-based Switcher Shortcut configuration</h3>
@@ -249,7 +253,7 @@ th { color: var(--text); }
     <h2>Gaps and Risks</h2>
     <section class="risk">
       <h3>Space membership is approximate</h3>
-      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, titles, PID, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:61-88</code>). Manual validation found behavior working as expected, but severity remains medium because future macOS, fullscreen, Stage Manager, and multi-display behavior can still regress.</p>
+      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, PID, window layer, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:40-123</code>). Manual validation found behavior working as expected, but severity remains medium because future macOS, fullscreen, Stage Manager, and multi-display behavior can still regress.</p>
     </section>
     <section class="risk">
       <h3>No automated tests</h3>
@@ -277,7 +281,7 @@ th { color: var(--text); }
       <li>Add a test target for candidate filtering, session state transitions, and activation fallback boundaries.</li>
       <li>Add free-form shortcut capture only if preset shortcuts are too limiting in manual use.</li>
       <li>Replace local development signing with a Developer ID or other distribution signing and notarization path before public distribution.</li>
-      <li>Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder in the manual regression matrix.</li>
+      <li>Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome and Helium Picture-in-Picture, Terminal, and Finder in the manual regression matrix.</li>
       <li>Add overlay overflow handling for more than seven candidates.</li>
     </ol>
 

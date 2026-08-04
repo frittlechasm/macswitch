@@ -27,7 +27,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - Shortcut preferences: persists the selected shortcut in `UserDefaults` and exposes preset selection from the Settings window.
 - Session orchestration: checks permission, snapshots candidates, filters to current-workspace candidates, renders the overlay, advances selection, and activates or cancels.
 - Window inventory: uses `NSWorkspace` and Accessibility to build `WindowCandidate` records.
-- Workspace filter: uses `CGWindowListCopyWindowInfo` and screen intersection as a public-API visibility approximation.
+- Workspace filter: uses `CGWindowListCopyWindowInfo` and the strongest same-process frame overlap as a public-API visibility approximation, consuming matched elevated windows without returning them as candidates.
 - Overlay: displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection state. Label length must not change the fixed app-to-app gap.
 - Activation: raises/focuses the Accessibility window and activates the owning app.
 
@@ -59,6 +59,7 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 - Native Swift/AppKit executable: keeps the prototype close to macOS APIs. The development app-bundle wrapper uses a stable local certificate for realistic Accessibility identity testing across rebuilds, while distribution signing and release packaging are still not defined.
 - Current switcher interaction model: manual validation on 2026-06-28 found opening, cycling, cancellation, and activation working as expected for the prototype.
 - Public-API workspace approximation: avoids private Space APIs. Manual validation on 2026-06-28 found filtering working as expected, but exact Space membership may still be imperfect across future macOS behavior changes.
+- Layer-zero candidate eligibility: ordinary Core Graphics layer-zero windows remain candidates; elevated windows are matched to the unmatched same-process candidate with the highest intersection-over-union score, then consumed and excluded. This removes browser Picture-in-Picture and other floating windows without app-specific rules or localized title matching.
 - Preset-based Switcher Shortcut configuration: keeps hotkey changes simple and avoids Command-Tab interception while the core product behavior is still being validated.
 - Service-per-responsibility composition: keeps the prototype simple, but dependency injection is manual and not yet test-oriented.
 
@@ -77,5 +78,5 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 - Add a SwiftPM test target for candidate filtering, session transitions, and activation boundaries.
 - Add free-form shortcut capture only if preset shortcuts are too limiting in manual use.
 - Replace local development signing with a Developer ID or other distribution signing and notarization path before public distribution.
-- Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome, Terminal, and Finder in the manual regression matrix.
+- Keep Spaces, fullscreen apps, Stage Manager, multi-display setups, Chrome and Helium Picture-in-Picture, Terminal, and Finder in the manual regression matrix.
 - Add overlay overflow handling for more than seven candidates.

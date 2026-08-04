@@ -12,7 +12,7 @@ The currently active macOS Space/Desktop.
 
 ### Window Candidate
 
-A selectable top-level window that can receive focus from the Mac Workspace Switcher.
+A selectable, ordinary top-level window that can receive focus from the Mac Workspace Switcher. Minimized, hidden, transient, and elevated floating windows such as browser Picture-in-Picture are not Window Candidates.
 
 ### Application Group
 
