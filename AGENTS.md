@@ -17,7 +17,7 @@
 - Run checks with `swift build`; use `swift run AppSwitcher` only when runtime behavior needs verification.
 - The app requires macOS Accessibility permission for realistic manual testing.
 - Never write a commit message or raise a PR without asking first.
-- Before implementing a new feature or material product/architecture change, use `grill-with-docs` to align the plan with `CONTEXT.md` and existing docs.
+- Before implementing a new feature or material product/architecture change, align the plan with `CONTEXT.md` and existing docs.
 - When changing product vocabulary, update `CONTEXT.md`.
 - Agent-readable docs must be Markdown files. Human-readable docs must be HTML files.
 - When changing architecture or durable implementation guidance, update the relevant Markdown source under `docs/` and its matching HTML companion for humans.
