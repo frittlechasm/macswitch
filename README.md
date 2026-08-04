@@ -16,7 +16,7 @@ Native Swift/AppKit macOS workspace switcher prototype.
 scripts/run-app-bundle.sh
 ```
 
-The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press the configured Switcher Shortcut. The default is `Option-Tab`.
+The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press the configured Switcher Shortcut. The default is `Option-Tab`. If permission is removed while the switcher is visible, the session closes without activating a window and requests permission again.
 
 ## License
 

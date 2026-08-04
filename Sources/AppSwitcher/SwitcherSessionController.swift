@@ -89,6 +89,13 @@ final class SwitcherSessionController {
 
         let candidate = candidates[selectedIndex]
         cancelSession()
+
+        guard permissionService.isTrusted else {
+            permissionService.requestTrustPrompt()
+            Diagnostics.log("Accessibility permission is no longer granted; skipping selected window activation")
+            return
+        }
+
         activationService.activate(candidate)
     }
 
