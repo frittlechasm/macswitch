@@ -193,7 +193,7 @@ th { color: var(--text); }
         <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records.</td><td><code>WindowInventoryService.swift:6-81</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code>, the strongest same-process frame overlap, and Core Graphics window layers as a public-API visibility approximation. Matched elevated windows are consumed but not returned as candidates.</td><td><code>PublicWorkspaceFilter.swift:9-124</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
         <tr><td>Overlay</td><td>Displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection ring. Label length must not change the fixed app-to-app gap.</td><td><code>SwitcherOverlayController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Activation</td><td>Raises/focuses the Accessibility window and activates the owning app.</td><td><code>WindowActivationService.swift:5-19</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Activation</td><td>Performs a bounded validation of the selected Accessibility window, then raises/focuses it and activates the owning app. A definitively stale selection performs no activation; indeterminate AX failures preserve the previous activation attempt.</td><td><code>WindowActivationService.swift:5-86</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
       </tbody>
     </table>
     </div>
@@ -217,7 +217,7 @@ th { color: var(--text); }
       <li><span class="badge badge-green">Source-backed</span> The session either advances selection if visible or begins a new session (<code>SwitcherSessionController.swift:29-36</code>).</li>
       <li><span class="badge badge-green">Source-backed</span> A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, and shows the overlay (<code>SwitcherSessionController.swift:39-58</code>).</li>
       <li><span class="badge badge-green">Source-backed</span> Releasing the configured shortcut modifier triggers the flags-changed monitor and activates the selected candidate.</li>
-      <li><span class="badge badge-green">Source-backed</span> Activation raises/focuses the Accessibility window and activates the owning process (<code>WindowActivationService.swift:5-19</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> Activation performs a bounded check of the selected Accessibility window role. A definitively stale selection performs no activation. A valid selection, or one whose validation fails for an indeterminate reason such as a transient AX error, continues through the existing activation flow with diagnostics (<code>WindowActivationService.swift:11-76</code>).</li>
     </ol>
 
     <h2>Architecture Decisions</h2>
@@ -236,6 +236,10 @@ th { color: var(--text); }
     <section class="decision">
       <h3>Layer-zero candidate eligibility</h3>
       <p><span class="badge badge-green">Source-backed</span> Ordinary Core Graphics layer-zero windows remain candidates. Elevated windows are matched to the unmatched same-process candidate with the highest intersection-over-union score, then consumed and excluded. This removes browser Picture-in-Picture and other floating windows without app-specific rules or localized title matching (<code>PublicWorkspaceFilter.swift:15-38</code>, <code>PublicWorkspaceFilter.swift:75-123</code>).</p>
+    </section>
+    <section class="decision">
+      <h3>Activation-time stale-window handling</h3>
+      <p><span class="badge badge-green">Source-backed</span> The v0.1.0 session keeps its initial candidate snapshot while visible. After the overlay closes, the activation service checks the selected AX window role with a temporary 0.25-second messaging timeout, then restores the default timeout before activation. A definitively stale element produces a privacy-safe diagnostic with its AX error and no activation attempt. Indeterminate AX failures are logged and preserve the previous activation behavior. Because the window can close after validation, the no-activation outcome is best-effort; live candidate removal is deferred (<code>SwitcherSessionController.swift:59-62</code>, <code>SwitcherSessionController.swift:83-102</code>, <code>WindowActivationService.swift:11-76</code>).</p>
     </section>
     <section class="decision">
       <h3>Preset-based Switcher Shortcut configuration</h3>

@@ -29,7 +29,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - Window inventory: uses `NSWorkspace` and Accessibility to build `WindowCandidate` records.
 - Workspace filter: uses `CGWindowListCopyWindowInfo` and the strongest same-process frame overlap as a public-API visibility approximation, consuming matched elevated windows without returning them as candidates.
 - Overlay: displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection state. Label length must not change the fixed app-to-app gap.
-- Activation: raises/focuses the Accessibility window and activates the owning app.
+- Activation: performs a bounded validation of the selected Accessibility window, then raises/focuses it and activates the owning app. A definitively stale selection performs no activation; indeterminate AX failures preserve the previous activation attempt.
 
 ## Data Model
 
@@ -52,7 +52,7 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 3. The session controller advances selection if the overlay is visible; otherwise it starts a new session.
 4. A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, and shows the overlay.
 5. Releasing the configured shortcut modifier triggers the flags-changed monitor and activates the selected candidate.
-6. `WindowActivationService` raises/focuses the Accessibility window and activates the owning process.
+6. `WindowActivationService` performs a bounded check of the selected Accessibility window role. A definitively stale selection performs no activation. A valid selection, or one whose validation fails for an indeterminate reason such as a transient AX error, continues through the existing activation flow with diagnostics.
 
 ## Decisions
 
@@ -60,6 +60,7 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 - Current switcher interaction model: manual validation on 2026-06-28 found opening, cycling, cancellation, and activation working as expected for the prototype.
 - Public-API workspace approximation: avoids private Space APIs. Manual validation on 2026-06-28 found filtering working as expected, but exact Space membership may still be imperfect across future macOS behavior changes.
 - Layer-zero candidate eligibility: ordinary Core Graphics layer-zero windows remain candidates; elevated windows are matched to the unmatched same-process candidate with the highest intersection-over-union score, then consumed and excluded. This removes browser Picture-in-Picture and other floating windows without app-specific rules or localized title matching.
+- Activation-time stale-window handling: the v0.1.0 session keeps its initial candidate snapshot while visible. After the overlay closes, the activation service checks the AX window role with a temporary 0.25-second messaging timeout, then restores the default timeout before activation. A definitively stale element produces a privacy-safe diagnostic with its AX error and no activation attempt. Indeterminate AX failures are logged and preserve the previous activation behavior. Because the window can close after validation, the no-activation outcome is best-effort; live candidate removal is deferred.
 - Preset-based Switcher Shortcut configuration: keeps hotkey changes simple and avoids Command-Tab interception while the core product behavior is still being validated.
 - Service-per-responsibility composition: keeps the prototype simple, but dependency injection is manual and not yet test-oriented.
 
