@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import Foundation
 
 enum SwitcherSessionTrigger {
     case hotkey
@@ -39,25 +40,41 @@ final class SwitcherSessionController {
         trigger: SwitcherSessionTrigger = .hotkey,
         activationModifierFlags: NSEvent.ModifierFlags = []
     ) {
+        let requestedAt = ProcessInfo.processInfo.systemUptime
+
         DispatchQueue.main.async {
             if self.overlayController.isVisible {
                 self.moveSelection(by: 1)
             } else {
-                self.beginSession(trigger: trigger, activationModifierFlags: activationModifierFlags)
+                self.beginSession(
+                    trigger: trigger,
+                    activationModifierFlags: activationModifierFlags,
+                    requestedAt: requestedAt
+                )
             }
         }
     }
 
     /// Starts a switcher session by collecting current-workspace windows and showing the overlay.
-    private func beginSession(trigger: SwitcherSessionTrigger, activationModifierFlags: NSEvent.ModifierFlags) {
+    private func beginSession(
+        trigger: SwitcherSessionTrigger,
+        activationModifierFlags: NSEvent.ModifierFlags,
+        requestedAt: TimeInterval
+    ) {
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
             Diagnostics.log("Accessibility permission is required before windows can be listed")
             return
         }
 
+        let inventoryStartedAt = ProcessInfo.processInfo.systemUptime
         let rawCandidates = inventoryService.snapshot()
+        let inventoryCompletedAt = ProcessInfo.processInfo.systemUptime
+
+        let filteringStartedAt = ProcessInfo.processInfo.systemUptime
         candidates = workspaceFilter.filter(rawCandidates)
+        let filteringCompletedAt = ProcessInfo.processInfo.systemUptime
+
         Diagnostics.log("Window candidates: raw=\(rawCandidates.count), currentWorkspace=\(candidates.count)")
         selectedIndex = candidates.count > 1 ? 1 : 0
 
@@ -67,7 +84,34 @@ final class SwitcherSessionController {
         }
 
         installSessionEventMonitors(activationModifierFlags: trigger == .hotkey ? activationModifierFlags : [])
+
+        let presentationStartedAt = ProcessInfo.processInfo.systemUptime
         overlayController.show(candidates: candidates, selectedIndex: selectedIndex)
+        let presentationCompletedAt = ProcessInfo.processInfo.systemUptime
+
+        logOverlayLatency(
+            total: presentationCompletedAt - requestedAt,
+            inventory: inventoryCompletedAt - inventoryStartedAt,
+            filtering: filteringCompletedAt - filteringStartedAt,
+            presentation: presentationCompletedAt - presentationStartedAt
+        )
+    }
+
+    /// Records production-safe stage timings for each successful overlay presentation.
+    private func logOverlayLatency(
+        total: TimeInterval,
+        inventory: TimeInterval,
+        filtering: TimeInterval,
+        presentation: TimeInterval
+    ) {
+        let millisecondsPerSecond = 1_000.0
+
+        Diagnostics.logOverlayLatency(
+            totalMilliseconds: total * millisecondsPerSecond,
+            inventoryMilliseconds: inventory * millisecondsPerSecond,
+            filteringMilliseconds: filtering * millisecondsPerSecond,
+            presentationMilliseconds: presentation * millisecondsPerSecond
+        )
     }
 
     /// Advances the selected candidate, wrapping around either end of the list.
