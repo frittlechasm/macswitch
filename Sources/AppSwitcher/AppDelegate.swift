@@ -117,13 +117,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Diagnostics.log("Registered \(shortcut.displayName) switcher shortcut")
             return true
         } catch {
-            Diagnostics.log("Failed to register \(shortcut.displayName) switcher shortcut: \(error)")
+            logHotKeyRegistrationFailure(error, shortcut: shortcut)
             if persistOnSuccess, let previousShortcut {
                 do {
                     try hotKeyMonitor.start(shortcut: previousShortcut)
                     Diagnostics.log("Restored \(previousShortcut.displayName) switcher shortcut")
                 } catch {
-                    Diagnostics.log("Failed to restore \(previousShortcut.displayName) switcher shortcut: \(error)")
+                    logHotKeyRestoreFailure(error, shortcut: previousShortcut)
+                    Diagnostics.logFailure(.hotKeyNoneRegistered)
                 }
             }
             return false
@@ -147,6 +148,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        Diagnostics.log("No switcher shortcut could be registered")
+        Diagnostics.logFailure(.hotKeyNoneRegistered)
+    }
+
+    private func logHotKeyRegistrationFailure(_ error: Error, shortcut: SwitcherShortcut) {
+        switch error {
+        case GlobalHotKeyError.installHandlerFailed(let status):
+            Diagnostics.logFailure(
+                .hotKeyInstallHandlerFailed,
+                errorCode: status,
+                privateContext: shortcut.displayName
+            )
+        case GlobalHotKeyError.registerHotKeyFailed(let status):
+            Diagnostics.logFailure(
+                .hotKeyRegisterFailed,
+                errorCode: status,
+                privateContext: shortcut.displayName
+            )
+        default:
+            Diagnostics.logFailure(
+                .hotKeyRegisterUnknownError,
+                privateContext: "\(shortcut.displayName); \(error)"
+            )
+        }
+    }
+
+    private func logHotKeyRestoreFailure(_ error: Error, shortcut: SwitcherShortcut) {
+        let errorCode: OSStatus?
+
+        switch error {
+        case GlobalHotKeyError.installHandlerFailed(let status),
+             GlobalHotKeyError.registerHotKeyFailed(let status):
+            errorCode = status
+        default:
+            errorCode = nil
+        }
+
+        Diagnostics.logFailure(
+            .hotKeyRestoreFailed,
+            errorCode: errorCode,
+            privateContext: "\(shortcut.displayName); \(error)"
+        )
     }
 }

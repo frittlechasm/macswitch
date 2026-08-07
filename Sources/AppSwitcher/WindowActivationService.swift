@@ -25,29 +25,56 @@ final class WindowActivationService {
         case .available:
             break
         case .unavailable(let reason, let error):
-            let errorDetail = error.map { "; AX error=\($0.rawValue)" } ?? ""
-            Diagnostics.log("Selected window for \(candidate.appName) is no longer available; \(reason)\(errorDetail); skipping activation")
+            Diagnostics.logFailure(
+                .activationWindowUnavailable,
+                errorCode: error?.rawValue,
+                privateContext: "\(candidate.appName); \(reason)"
+            )
             return
         case .indeterminate(let error):
-            Diagnostics.log("Could not validate selected window for \(candidate.appName); continuing activation: \(error.rawValue)")
+            Diagnostics.logFailure(
+                .activationValidationIndeterminate,
+                errorCode: error.rawValue,
+                privateContext: candidate.appName
+            )
         }
 
         if let app = NSRunningApplication(processIdentifier: candidate.processIdentifier) {
             let activated = app.activate()
             if !activated {
-                Diagnostics.log("Failed to activate owning app for \(candidate.appName)")
+                Diagnostics.logFailure(
+                    .activationAppActivateFailed,
+                    privateContext: candidate.appName
+                )
             }
         } else {
-            Diagnostics.log("Could not find owning app for pid \(candidate.processIdentifier)")
+            Diagnostics.logFailure(
+                .activationAppNotFound,
+                privateContext: "\(candidate.appName); pid=\(candidate.processIdentifier)"
+            )
         }
 
         let raiseResult = AXUIElementPerformAction(candidate.axWindow, kAXRaiseAction as CFString)
         if raiseResult != .success {
-            Diagnostics.log("Failed to raise AX window for \(candidate.appName): \(raiseResult.rawValue)")
+            Diagnostics.logFailure(
+                .activationRaiseFailed,
+                errorCode: raiseResult.rawValue,
+                privateContext: candidate.appName
+            )
         }
 
-        setBooleanAttribute(kAXMainAttribute, value: true, on: candidate.axWindow)
-        setBooleanAttribute(kAXFocusedAttribute, value: true, on: candidate.axWindow)
+        setBooleanAttribute(
+            kAXMainAttribute,
+            value: true,
+            on: candidate.axWindow,
+            failureStage: .activationSetMainFailed
+        )
+        setBooleanAttribute(
+            kAXFocusedAttribute,
+            value: true,
+            on: candidate.axWindow,
+            failureStage: .activationSetFocusedFailed
+        )
     }
 
     /// Distinguishes a stale AX element from transient messaging and permission failures.
@@ -77,11 +104,19 @@ final class WindowActivationService {
     }
 
     /// Sets an Accessibility boolean attribute and logs failures without interrupting activation.
-    private func setBooleanAttribute(_ attribute: String, value: Bool, on element: AXUIElement) {
+    private func setBooleanAttribute(
+        _ attribute: String,
+        value: Bool,
+        on element: AXUIElement,
+        failureStage: Diagnostics.FailureStage
+    ) {
         let result = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFTypeRef)
 
         if result != .success {
-            Diagnostics.log("Failed to set AX attribute \(attribute): \(result.rawValue)")
+            Diagnostics.logFailure(
+                failureStage,
+                errorCode: result.rawValue
+            )
         }
     }
 }

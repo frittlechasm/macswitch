@@ -63,7 +63,7 @@ final class SwitcherSessionController {
     ) {
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
-            Diagnostics.log("Accessibility permission is required before windows can be listed")
+            Diagnostics.logFailure(.sessionPermissionDenied)
             return
         }
 
@@ -75,7 +75,7 @@ final class SwitcherSessionController {
         candidates = workspaceFilter.filter(rawCandidates)
         let filteringCompletedAt = ProcessInfo.processInfo.systemUptime
 
-        Diagnostics.log("Window candidates: raw=\(rawCandidates.count), currentWorkspace=\(candidates.count)")
+        Diagnostics.logCandidateCounts(raw: rawCandidates.count, currentWorkspace: candidates.count)
         selectedIndex = candidates.count > 1 ? 1 : 0
 
         guard !candidates.isEmpty else {
@@ -136,7 +136,7 @@ final class SwitcherSessionController {
 
         guard permissionService.isTrusted else {
             permissionService.requestTrustPrompt()
-            Diagnostics.log("Accessibility permission is no longer granted; skipping selected window activation")
+            Diagnostics.logFailure(.activationPermissionDenied)
             return
         }
 
