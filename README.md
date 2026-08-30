@@ -3,7 +3,7 @@
 # Mac Workspace Switcher
 
 [![License](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](./LICENSE)
-[![macOS](https://img.shields.io/badge/macOS-13%2B-111111?style=flat-square&logo=apple)](https://github.com/frittlechasm/app-switcher/releases)
+[![macOS](https://img.shields.io/badge/macOS-13%2B-111111?style=flat-square&logo=apple)](https://github.com/frittlechasm/macswitch/releases)
 
 <img src="./docs/images/switcher.png" alt="Mac Workspace Switcher showing visible window candidates" width="900" />
 
@@ -13,15 +13,19 @@ _Switch between individual windows in your current macOS workspace._
 
 ## Install
 
-Download the latest build from [Releases](https://github.com/frittlechasm/app-switcher/releases), move **Mac Workspace Switcher** to Applications, and open it.
+v0.1.0 is a source-only release. A prebuilt application is not available yet.
 
 Requires macOS 13 or later.
 
 To build and run from source:
 
 ```bash
+git clone https://github.com/frittlechasm/macswitch.git
+cd macswitch
 CODESIGN_IDENTITY=- scripts/run-app-bundle.sh
 ```
+
+A signed and notarized download is planned for v0.1.2.
 
 ## Usage
 
