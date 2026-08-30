@@ -1,22 +1,73 @@
+<div align="center">
+
 # Mac Workspace Switcher
 
-Native Swift/AppKit macOS workspace switcher prototype.
+[![License](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](./LICENSE)
+[![macOS](https://img.shields.io/badge/macOS-13%2B-111111?style=flat-square&logo=apple)](https://github.com/frittlechasm/app-switcher/releases)
 
-## Current Scope
+<img src="./docs/images/switcher.png" alt="Mac Workspace Switcher showing visible window candidates" width="900" />
 
-- Uses public macOS APIs only.
-- Uses Accessibility APIs for window discovery and activation.
-- Shows a Command-Tab-style glass overlay with large app icons and a selected-only label with inline window details when one app has multiple candidates.
-- Filters to visible, non-minimized, ordinary windows in the current macOS workspace context as far as public APIs allow. Elevated floating windows such as browser Picture-in-Picture are excluded.
-- Starts with `Option-Tab` by default. Check Settings to set your own shortcut.
+_Switch between individual windows in your current macOS workspace._
 
-## Run
+</div>
 
-```sh
-scripts/run-app-bundle.sh
+## Install
+
+Download the latest build from [Releases](https://github.com/frittlechasm/app-switcher/releases), move **Mac Workspace Switcher** to Applications, and open it.
+
+Requires macOS 13 or later.
+
+To build and run from source:
+
+```bash
+CODESIGN_IDENTITY=- scripts/run-app-bundle.sh
 ```
 
-The app requires Accessibility permission to inspect and focus windows. Use the menu-bar item or the macOS prompt to grant permission, then press the configured Switcher Shortcut. The default is `Option-Tab`. If permission is removed while the switcher is visible, the session closes without activating a window and requests permission again.
+## Usage
+
+Grant Accessibility permission when prompted, then press `Option-Tab` to open the switcher.
+Keep pressing `Tab` or use the arrow keys to move between windows.
+Release `Option` or press `Return` to select; press `Escape` to cancel.
+
+Use the menu-bar item to check permission status or choose a different shortcut in Settings.
+
+## Switcher
+
+Mac Workspace Switcher focuses on visible windows in your current macOS Space.
+Multiple windows from the same app appear as separate choices, with the selected window title shown below its app icon.
+
+There is no hard-coded app blacklist for now. By default, the switcher excludes:
+
+- Menu-bar-only and background apps, plus apps currently hidden by macOS.
+- Minimized windows and windows on other Spaces.
+- Sheets, dialogs, custom non-standard windows, and desktop elements.
+- Elevated floating windows such as browser Picture-in-Picture players.
+
+## Settings
+
+Use the menu-bar controls to manage Accessibility permission or select a different shortcut.
+
+<div align="center">
+  <img src="./docs/images/menu-bar.png" alt="Mac Workspace Switcher menu-bar controls" width="38%" />
+  <img src="./docs/images/settings.png" alt="Mac Workspace Switcher shortcut settings" width="54%" />
+</div>
+
+## How it works
+
+- Runs as a native Swift/AppKit menu-bar app with no third-party dependencies.
+- Shows visible, non-minimized windows from the current macOS Space.
+- Uses public macOS Accessibility APIs to discover and focus windows.
+
+## Uninstall
+
+Quit Mac Workspace Switcher from its menu-bar item, then move **Mac Workspace Switcher** from Applications to the Trash.
+
+To also remove the saved shortcut and Accessibility permission record:
+
+```bash
+defaults delete com.frittlechasm.mac-workspace-switcher
+tccutil reset Accessibility com.frittlechasm.mac-workspace-switcher
+```
 
 ## License
 
