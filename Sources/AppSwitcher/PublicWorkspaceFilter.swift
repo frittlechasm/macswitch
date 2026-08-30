@@ -12,14 +12,18 @@ final class PublicWorkspaceFilter {
         filter(candidates, visibleWindows: currentVisibleWindows())
     }
 
-    /// Excludes elevated windows such as Picture-in-Picture after matching them to AX candidates.
-    private func filter(
+    /// Matches only ordinary layer-zero windows so elevated windows cannot hide or become candidates.
+    func filter(
         _ candidates: [WindowCandidate],
         visibleWindows: [VisibleWindowSnapshot]
     ) -> [WindowCandidate] {
         var matchedCandidateIndexes = Set<Int>()
 
         return visibleWindows.compactMap { visibleWindow in
+            guard visibleWindow.layer == 0 else {
+                return nil
+            }
+
             guard let candidateIndex = bestCandidateIndex(
                 for: visibleWindow,
                 candidates: candidates,
@@ -29,10 +33,6 @@ final class PublicWorkspaceFilter {
             }
 
             matchedCandidateIndexes.insert(candidateIndex)
-            guard visibleWindow.layer == 0 else {
-                return nil
-            }
-
             return candidates[candidateIndex]
         }
     }

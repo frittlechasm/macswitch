@@ -24,12 +24,39 @@ final class WindowInventoryService {
             Diagnostics.log("Failed to set AX messaging timeout for \(app.localizedName ?? "unknown app"): \(timeoutResult.rawValue)")
         }
 
-        guard let windows: [AXUIElement] = appElement.copyAttribute(kAXWindowsAttribute) else {
+        guard let windows = windows(for: appElement, appName: app.localizedName) else {
             return []
         }
 
         return windows.enumerated().compactMap { index, window in
             candidate(for: window, app: app, index: index)
+        }
+    }
+
+    /// Retries the transient AX messaging failure once before omitting an app from the inventory.
+    private func windows(for appElement: AXUIElement, appName: String?) -> [AXUIElement]? {
+        let firstAttempt: AXAttributeResult<[AXUIElement]> = appElement.copyAttributeResult(kAXWindowsAttribute)
+        if case let .success(windows) = firstAttempt {
+            return windows
+        }
+
+        let finalAttempt: AXAttributeResult<[AXUIElement]>
+        if case .failure(.cannotComplete) = firstAttempt {
+            finalAttempt = appElement.copyAttributeResult(kAXWindowsAttribute)
+        } else {
+            finalAttempt = firstAttempt
+        }
+
+        switch finalAttempt {
+        case let .success(windows):
+            return windows
+        case let .failure(error):
+            Diagnostics.logFailure(
+                .inventoryWindowsUnavailable,
+                errorCode: error.rawValue,
+                privateContext: appName
+            )
+            return nil
         }
     }
 
@@ -87,17 +114,35 @@ final class WindowInventoryService {
     }
 }
 
+private enum AXAttributeResult<Value> {
+    case success(Value)
+    case failure(AXError)
+}
+
 private extension AXUIElement {
-    /// Reads and casts one Accessibility attribute, returning nil when the app does not expose it.
-    func copyAttribute<T>(_ attribute: String) -> T? {
+    func copyAttributeResult<T>(_ attribute: String) -> AXAttributeResult<T> {
         var value: CFTypeRef?
         let error = AXUIElementCopyAttributeValue(self, attribute as CFString, &value)
 
         guard error == .success else {
+            return .failure(error)
+        }
+
+        guard let value = value as? T else {
+            return .failure(.failure)
+        }
+
+        return .success(value)
+    }
+
+    /// Reads and casts one Accessibility attribute, returning nil when the app does not expose it.
+    func copyAttribute<T>(_ attribute: String) -> T? {
+        let result: AXAttributeResult<T> = copyAttributeResult(attribute)
+        guard case let .success(value) = result else {
             return nil
         }
 
-        return value as? T
+        return value
     }
 
     /// Reconstructs a window frame from separate AX position and size attributes.

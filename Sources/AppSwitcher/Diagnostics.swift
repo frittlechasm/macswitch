@@ -12,6 +12,7 @@ enum Diagnostics {
         case activationRaiseFailed = "activation-raise-failed"
         case activationSetMainFailed = "activation-set-main-failed"
         case activationSetFocusedFailed = "activation-set-focused-failed"
+        case inventoryWindowsUnavailable = "inventory-windows-unavailable"
         case hotKeyInstallHandlerFailed = "hotkey-install-handler-failed"
         case hotKeyRegisterFailed = "hotkey-register-failed"
         case hotKeyRestoreFailed = "hotkey-restore-failed"

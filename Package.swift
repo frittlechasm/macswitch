@@ -14,6 +14,11 @@ let package = Package(
         .executableTarget(
             name: "AppSwitcher",
             path: "Sources/AppSwitcher"
+        ),
+        .testTarget(
+            name: "AppSwitcherTests",
+            dependencies: ["AppSwitcher"],
+            path: "Tests/AppSwitcherTests"
         )
     ]
 )
