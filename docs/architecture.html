@@ -103,9 +103,9 @@ th { color: var(--text); }
 
     <div class="stats">
       <div class="stat"><div class="value">1</div><div class="label">SwiftPM executable</div></div>
-      <div class="stat"><div class="value">15</div><div class="label">Swift source files</div></div>
+      <div class="stat"><div class="value">14</div><div class="label">Swift source files</div></div>
       <div class="stat"><div class="value">3</div><div class="label">macOS API families</div></div>
-      <div class="stat"><div class="value">3</div><div class="label">Automated tests</div></div>
+      <div class="stat"><div class="value">6</div><div class="label">Automated tests</div></div>
     </div>
 
     <aside class="evidence">
@@ -115,11 +115,11 @@ th { color: var(--text); }
         <li><code>scripts/build-app-bundle.sh</code> wraps the SwiftPM executable in a development <code>.app</code> bundle named Mac Workspace Switcher, signs the completed bundle with a stable local identity, and verifies the signature for Accessibility identity testing.</li>
         <li><code>scripts/run-app-bundle.sh</code> builds and opens that bundle from the terminal without running the raw executable identity.</li>
         <li><code>Sources/AppSwitcher/main.swift:3-8</code> starts an AppKit accessory application.</li>
-        <li><code>Sources/AppSwitcher/AppDelegate.swift:11-23</code> composes the services.</li>
-        <li><code>Sources/AppSwitcher/SwitcherSessionController.swift:58-115</code> builds and displays a switcher session and records its stage latency.</li>
+        <li><code>Sources/AppSwitcher/AppDelegate.swift</code> composes the services.</li>
+        <li><code>Sources/AppSwitcher/SwitcherSessionController.swift</code> builds and displays a switcher session and records its stage latency.</li>
         <li><code>Sources/AppSwitcher/WindowInventoryService.swift:5-168</code> enumerates apps and Accessibility windows, retrying transient AX messaging failures once.</li>
-        <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift:9-125</code> uses Core Graphics visible-window state and window layers to approximate the active workspace while excluding elevated floating windows.</li>
-        <li><code>Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift:14-78</code> covers elevated-window exclusion, auxiliary-window candidate theft, and front-to-back ordering.</li>
+        <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift</code> uses Core Graphics visible-window state and window layers to approximate the active workspace while excluding elevated floating windows.</li>
+        <li><code>Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift</code> covers elevated-window exclusion, auxiliary-window candidate theft, and front-to-back ordering.</li>
       </ul>
     </aside>
 
@@ -177,31 +177,31 @@ th { color: var(--text); }
       <text class="annot" x="465" y="268" text-anchor="middle">candidates</text>
     </svg>
 
-    <p><span class="badge badge-green">Source-backed</span> The entrypoint creates <code>NSApplication.shared</code>, assigns <code>AppDelegate</code>, sets accessory activation policy, and starts the AppKit event loop (<code>main.swift:3-8</code>). <span class="badge badge-green">Source-backed</span> The delegate constructs all core services directly on launch (<code>AppDelegate.swift:11-23</code>).</p>
+    <p><span class="badge badge-green">Source-backed</span> The entrypoint creates <code>NSApplication.shared</code>, assigns <code>AppDelegate</code>, sets accessory activation policy, and starts the AppKit event loop (<code>main.swift:3-8</code>). <span class="badge badge-green">Source-backed</span> The delegate constructs all core services directly on launch (<code>AppDelegate.swift</code>).</p>
 
     <h2>Major Modules</h2>
     <div class="scroll-x" role="region" tabindex="0" aria-label="Major modules">
     <table>
       <thead><tr><th scope="col">Module</th><th scope="col">Purpose</th><th scope="col">Evidence</th><th scope="col">Notes</th></tr></thead>
       <tbody>
-        <tr><td>App shell</td><td>Starts the AppKit accessory app and composes services.</td><td><code>main.swift:3-8</code>, <code>AppDelegate.swift:11-23</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>App shell</td><td>Starts the AppKit accessory app and composes services.</td><td><code>main.swift:3-8</code>, <code>AppDelegate.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Development app bundle</td><td>Builds the SwiftPM executable, creates <code>.build/debug/Mac Workspace Switcher.app</code> with bundle metadata, signs it with the configured local identity, and verifies the completed bundle so macOS Accessibility trust survives rebuilds.</td><td><code>scripts/build-app-bundle.sh</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Bundle launcher</td><td>Opens the generated <code>.app</code> bundle from terminal workflows so Accessibility trust is associated with Mac Workspace Switcher rather than the terminal or shell wrapper.</td><td><code>scripts/run-app-bundle.sh</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Status bar</td><td>Provides menu actions for showing the switcher, permission prompts, settings, and quit.</td><td><code>StatusBarController.swift:18-35</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Hotkey input</td><td>Registers the selected Switcher Shortcut through Carbon event hotkey APIs.</td><td><code>GlobalHotKeyMonitor.swift</code>, <code>SwitcherShortcut.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Shortcut preferences</td><td>Stores the selected shortcut in UserDefaults and exposes preset selection from Settings.</td><td><code>SwitcherShortcut.swift</code>, <code>PreferencesWindowController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Session orchestration</td><td>Checks Accessibility trust when a session begins and again immediately before activation, snapshots candidates, filters, renders the overlay, records stage latency, navigates selection, and activates or cancels.</td><td><code>SwitcherSessionController.swift:39-217</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Session orchestration</td><td>Checks Accessibility trust when a session begins and again immediately before activation, snapshots candidates, filters, renders the overlay, records stage latency, navigates selection, and activates or cancels.</td><td><code>SwitcherSessionController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Window inventory</td><td>Uses <code>NSWorkspace</code> and Accessibility to build <code>WindowCandidate</code> records. A <code>cannotComplete</code> AX window-list read is retried once before that app is omitted and a privacy-safe failure is logged.</td><td><code>WindowInventoryService.swift:5-168</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code>, the strongest same-process frame overlap, and Core Graphics window layers as a public-API visibility approximation. Only ordinary layer-zero windows can produce candidates, so elevated windows cannot consume or become candidates.</td><td><code>PublicWorkspaceFilter.swift:9-125</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
+        <tr><td>Workspace filter</td><td>Uses <code>CGWindowListCopyWindowInfo</code>, the strongest same-process frame overlap, and Core Graphics window layers as a public-API visibility approximation. Only ordinary layer-zero windows can produce candidates, so elevated windows cannot consume or become candidates.</td><td><code>PublicWorkspaceFilter.swift</code></td><td><span class="badge badge-amber">Inferred</span> It approximates Space membership through visibility, not a direct Space API.</td></tr>
         <tr><td>Overlay</td><td>Displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection ring. Label length must not change the fixed app-to-app gap.</td><td><code>SwitcherOverlayController.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
         <tr><td>Activation</td><td>Performs a bounded validation of the selected Accessibility window, then raises/focuses it and activates the owning app. A definitively stale selection performs no activation; indeterminate AX failures preserve the previous activation attempt.</td><td><code>WindowActivationService.swift:5-122</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
-        <tr><td>Diagnostics</td><td>Writes privacy-safe counts, allowlisted failure stages, numeric error codes, and per-opening overlay latency to the system log without storing history or window content. Stage identifiers, counts, codes, and timing are public and queryable; descriptive context remains private.</td><td><code>Diagnostics.swift:4-73</code>, <code>SwitcherSessionController.swift:64-139</code>, <code>WindowActivationService.swift:24-120</code>, <code>AppDelegate.swift:119-192</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
+        <tr><td>Diagnostics</td><td>Writes privacy-safe counts, allowlisted failure stages, numeric error codes, and per-opening overlay latency to the system log without storing history or window content. Stage identifiers, counts, codes, and timing are public and queryable; descriptive context remains private.</td><td><code>Diagnostics.swift:4-73</code>, <code>SwitcherSessionController.swift</code>, <code>WindowActivationService.swift:24-120</code>, <code>AppDelegate.swift</code></td><td><span class="badge badge-green">Source-backed</span></td></tr>
       </tbody>
     </table>
     </div>
 
     <h2>Data Model and Storage</h2>
-    <p><span class="badge badge-green">Source-backed</span> The main switching data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift:4-12</code>). <span class="badge badge-green">Source-backed</span> <code>SwitcherShortcut</code> models the available shortcut presets, and <code>SwitcherShortcutStore</code> persists the selected preset in UserDefaults.</p>
+    <p><span class="badge badge-green">Source-backed</span> The main switching data structure is <code>WindowCandidate</code>, which stores process id, app name, bundle id, title, frame, app icon, and the Accessibility window reference (<code>WindowCandidate.swift</code>). <span class="badge badge-green">Source-backed</span> <code>SwitcherShortcut</code> models the available shortcut presets, and <code>SwitcherShortcutStore</code> persists the selected preset in UserDefaults.</p>
 
     <h2>External Integrations</h2>
     <p><span class="badge badge-green">Source-backed</span> The app integrates with macOS frameworks only: AppKit for app lifecycle, menu, overlay window, system glass material, and screens; SwiftUI for overlay content layout; Carbon for hotkey registration; ApplicationServices Accessibility for permission/window control; and Core Graphics for visible window-server state.</p>
@@ -209,17 +209,17 @@ th { color: var(--text); }
       <li><code>AXIsProcessTrusted</code> and <code>AXIsProcessTrustedWithOptions</code> check/request Accessibility trust (<code>AccessibilityPermissionService.swift:6-15</code>).</li>
       <li><code>RegisterEventHotKey</code> registers the selected Switcher Shortcut (<code>GlobalHotKeyMonitor.swift</code>).</li>
       <li><code>AXUIElementCopyAttributeValue</code> reads window attributes (<code>WindowInventoryService.swift:37-61</code>, <code>WindowInventoryService.swift:122-145</code>).</li>
-      <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots, including window layer metadata (<code>PublicWorkspaceFilter.swift:40-73</code>).</li>
+      <li><code>CGWindowListCopyWindowInfo</code> reads on-screen window-server snapshots, including window layer metadata (<code>PublicWorkspaceFilter.swift</code>).</li>
     </ul>
 
     <h2>Key Flow: Switch Window</h2>
     <ol>
       <li><span class="badge badge-green">Source-backed</span> Carbon emits the registered hotkey callback and invokes <code>onPressed</code> (<code>GlobalHotKeyMonitor.swift:24-36</code>).</li>
       <li><span class="badge badge-green">Source-backed</span> The delegate's closure calls <code>sessionController.handleSwitcherShortcut()</code> with the active shortcut's modifier flags.</li>
-      <li><span class="badge badge-green">Source-backed</span> The session either advances selection if visible or begins a new session (<code>SwitcherSessionController.swift:39-56</code>).</li>
-      <li><span class="badge badge-green">Source-backed</span> A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, shows the overlay, and logs total, inventory, filtering, and presentation latency (<code>SwitcherSessionController.swift:58-115</code>).</li>
-      <li><span class="badge badge-green">Source-backed</span> Releasing the configured shortcut modifier selects the current candidate for activation after closing the overlay (<code>SwitcherSessionController.swift:128-154</code>, <code>SwitcherSessionController.swift:209-217</code>).</li>
-      <li><span class="badge badge-green">Source-backed</span> The session rechecks Accessibility trust. If permission is no longer granted, it requests the standard macOS prompt and performs no activation (<code>SwitcherSessionController.swift:128-144</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> The session either advances selection if visible or begins a new session (<code>SwitcherSessionController.swift</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, shows the overlay, and logs total, inventory, filtering, and presentation latency (<code>SwitcherSessionController.swift</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> Releasing the configured shortcut modifier selects the current candidate for activation after closing the overlay (<code>SwitcherSessionController.swift</code>).</li>
+      <li><span class="badge badge-green">Source-backed</span> The session rechecks Accessibility trust. If permission is no longer granted, it requests the standard macOS prompt and performs no activation (<code>SwitcherSessionController.swift</code>).</li>
       <li><span class="badge badge-green">Source-backed</span> Activation performs a bounded check of the selected Accessibility window role. A definitively stale selection performs no activation. A valid selection, or one whose validation fails for an indeterminate reason such as a transient AX error, continues through the existing activation flow with diagnostics (<code>WindowActivationService.swift:11-103</code>).</li>
     </ol>
 
@@ -240,11 +240,11 @@ th { color: var(--text); }
     </section>
     <section class="decision">
       <h3>Public-API workspace approximation</h3>
-      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift:9-125</code>). Manual validation on 2026-06-28 found filtering working as expected. Tradeoff: distribution-friendly and less brittle, but exact Space membership may still be imperfect across future macOS behavior changes.</p>
+      <p><span class="badge badge-green">Source-backed</span> Filtering is implemented through on-screen Core Graphics windows and screen intersection rather than private Space APIs (<code>PublicWorkspaceFilter.swift</code>). Manual validation on 2026-06-28 found filtering working as expected. Tradeoff: distribution-friendly and less brittle, but exact Space membership may still be imperfect across future macOS behavior changes.</p>
     </section>
     <section class="decision">
       <h3>Layer-zero candidate eligibility</h3>
-      <p><span class="badge badge-green">Source-backed</span> Only ordinary Core Graphics layer-zero windows are matched and returned. Elevated windows are ignored before AX candidate matching. This removes browser Picture-in-Picture and other floating windows without letting auxiliary windows steal an app's ordinary candidate (<code>PublicWorkspaceFilter.swift:15-38</code>, <code>PublicWorkspaceFilter.swift:75-124</code>).</p>
+      <p><span class="badge badge-green">Source-backed</span> Candidates are indexed by process once per snapshot, and each visible window selects its strongest unmatched candidate in one pass without a scored temporary array. Only ordinary Core Graphics layer-zero windows are matched and returned. Elevated windows are ignored before AX candidate matching. This removes browser Picture-in-Picture and other floating windows without letting auxiliary windows steal an app's ordinary candidate (<code>PublicWorkspaceFilter.swift</code>).</p>
     </section>
     <section class="decision">
       <h3>Transient inventory retry</h3>
@@ -252,19 +252,19 @@ th { color: var(--text); }
     </section>
     <section class="decision">
       <h3>Activation-time stale-window handling</h3>
-      <p><span class="badge badge-green">Source-backed</span> The v0.1.0 session keeps its initial candidate snapshot while visible. After the overlay closes, the activation service checks the selected AX window role with a temporary 0.25-second messaging timeout, then restores the default timeout before activation. A definitively stale element produces a privacy-safe diagnostic with its AX error and no activation attempt. Indeterminate AX failures are logged and preserve the previous activation behavior. Because the window can close after validation, the no-activation outcome is best-effort; live candidate removal is deferred (<code>SwitcherSessionController.swift:70-79</code>, <code>SwitcherSessionController.swift:128-154</code>, <code>WindowActivationService.swift:11-103</code>).</p>
+      <p><span class="badge badge-green">Source-backed</span> The v0.1.0 session keeps its initial candidate snapshot while visible. After the overlay closes, the activation service checks the selected AX window role with a temporary 0.25-second messaging timeout, then restores the default timeout before activation. A definitively stale element produces a privacy-safe diagnostic with its AX error and no activation attempt. Indeterminate AX failures are logged and preserve the previous activation behavior. Because the window can close after validation, the no-activation outcome is best-effort; live candidate removal is deferred (<code>SwitcherSessionController.swift</code>, <code>WindowActivationService.swift:11-103</code>).</p>
     </section>
     <section class="decision">
       <h3>Session-boundary permission handling</h3>
-      <p><span class="badge badge-green">Source-backed</span> Accessibility trust is checked when a session begins and again after the overlay closes but before activation. If permission was removed during the session, the app requests the standard macOS prompt, logs a privacy-safe diagnostic, and performs no activation. Continuous monitoring, custom alerts, and automatic System Settings navigation are deferred. A narrow permission-change race remains after the final check (<code>SwitcherSessionController.swift:64-68</code>, <code>SwitcherSessionController.swift:128-144</code>).</p>
+      <p><span class="badge badge-green">Source-backed</span> Accessibility trust is checked when a session begins and again after the overlay closes but before activation. If permission was removed during the session, the app requests the standard macOS prompt, logs a privacy-safe diagnostic, and performs no activation. Continuous monitoring, custom alerts, and automatic System Settings navigation are deferred. A narrow permission-change race remains after the final check (<code>SwitcherSessionController.swift</code>).</p>
     </section>
     <section class="decision">
       <h3>Production overlay latency measurement</h3>
-      <p><span class="badge badge-green">Source-backed</span> Every successful overlay opening uses monotonic system uptime to log total request-to-<code>show()</code> return latency plus inventory, filtering, and the synchronous overlay <code>show()</code> call. The total also includes main-queue dispatch and session orchestration, so the stage values do not necessarily add up to it. The metric does not measure compositor latency. A dedicated default-level unified logger makes only these four numeric measurements public and queryable. The instrumentation is unconditional, retains no history or window content, and must remain enabled through the first production rollout. A performance target will be chosen only after rollout measurements exist (<code>Diagnostics.swift:28-72</code>, <code>SwitcherSessionController.swift:39-115</code>).</p>
+      <p><span class="badge badge-green">Source-backed</span> Every successful overlay opening uses monotonic system uptime to log total request-to-<code>show()</code> return latency plus inventory, filtering, and the synchronous overlay <code>show()</code> call. The total also includes main-queue dispatch and session orchestration, so the stage values do not necessarily add up to it. The metric does not measure compositor latency. A dedicated default-level unified logger makes only these four numeric measurements public and queryable. The instrumentation is unconditional, retains no history or window content, and must remain enabled through the first production rollout. A performance target will be chosen only after rollout measurements exist (<code>Diagnostics.swift:28-72</code>, <code>SwitcherSessionController.swift</code>).</p>
     </section>
     <section class="decision">
       <h3>Structured reliability diagnostics</h3>
-      <p><span class="badge badge-green">Source-backed</span> A closed stage allowlist records actionable inventory, permission, activation, and hotkey failures at the persistent error level. Stage identifiers and optional numeric AX/OSStatus codes are public; app names, shortcut names, roles, process identifiers, and unexpected error descriptions are explicitly private. Candidate counts are public at the default persistent level. Non-actionable AX timeout-configuration warnings and ordinary lifecycle/status messages retain the existing private diagnostic path to avoid noisy production failure logs. No logs are uploaded or stored separately by the app (<code>Diagnostics.swift:4-73</code>, <code>WindowInventoryService.swift:21-61</code>, <code>WindowActivationService.swift:13-120</code>, <code>AppDelegate.swift:119-192</code>).</p>
+      <p><span class="badge badge-green">Source-backed</span> A closed stage allowlist records actionable inventory, permission, activation, and hotkey failures at the persistent error level. Stage identifiers and optional numeric AX/OSStatus codes are public; app names, shortcut names, roles, process identifiers, and unexpected error descriptions are explicitly private. Candidate counts are public at the default persistent level. Non-actionable AX timeout-configuration warnings and ordinary lifecycle/status messages retain the existing private diagnostic path to avoid noisy production failure logs. No logs are uploaded or stored separately by the app (<code>Diagnostics.swift:4-73</code>, <code>WindowInventoryService.swift:21-61</code>, <code>WindowActivationService.swift:13-120</code>, <code>AppDelegate.swift</code>).</p>
     </section>
     <section class="decision">
       <h3>Preset-based Switcher Shortcut configuration</h3>
@@ -272,21 +272,21 @@ th { color: var(--text); }
     </section>
     <section class="decision">
       <h3>Service-per-responsibility composition</h3>
-      <p><span class="badge badge-green">Source-backed</span> <code>AppDelegate</code> directly constructs permission, inventory, filter, activation, overlay, session, menu, and hotkey services (<code>AppDelegate.swift:11-37</code>). Tradeoff: simple for a prototype, but dependency injection is manual and not yet test-oriented.</p>
+      <p><span class="badge badge-green">Source-backed</span> <code>AppDelegate</code> directly constructs permission, inventory, filter, activation, overlay, session, menu, and hotkey services (<code>AppDelegate.swift</code>). Tradeoff: simple for a prototype, but dependency injection is manual and not yet test-oriented.</p>
     </section>
 
     <h2>Security Controls</h2>
-    <p><span class="badge badge-green">Source-backed</span> The app explicitly checks Accessibility trust before listing windows and immediately before activation (<code>SwitcherSessionController.swift:64-68</code>, <code>SwitcherSessionController.swift:128-144</code>) and exposes a settings path for permission management (<code>AccessibilityPermissionService.swift:18-26</code>). Structured diagnostics expose only allowlisted stage identifiers, counts, timings, and numeric error codes; descriptive context remains private (<code>Diagnostics.swift:4-73</code>). <span class="badge badge-green">Source-backed</span> It does not use network APIs, store secrets, upload logs, or write user data in the current codebase.</p>
+    <p><span class="badge badge-green">Source-backed</span> The app explicitly checks Accessibility trust before listing windows and immediately before activation (<code>SwitcherSessionController.swift</code>) and exposes a settings path for permission management (<code>AccessibilityPermissionService.swift:18-26</code>). Structured diagnostics expose only allowlisted stage identifiers, counts, timings, and numeric error codes; descriptive context remains private (<code>Diagnostics.swift:4-73</code>). <span class="badge badge-green">Source-backed</span> It does not use network APIs, store secrets, upload logs, or write user data in the current codebase.</p>
     <p><span class="badge badge-amber">Gap</span> There is no signed/notarized release app bundle, entitlement review, hardened runtime configuration, or distribution packaging yet. That matters because the product goal includes eventual public distribution.</p>
 
     <h2>Gaps and Risks</h2>
     <section class="risk">
       <h3>Space membership is approximate</h3>
-      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, PID, window layer, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift:40-124</code>). Manual validation found behavior working as expected, but severity remains medium because future macOS, fullscreen, Stage Manager, and multi-display behavior can still regress.</p>
+      <p><span class="badge badge-amber">Gap</span> The code uses visible window snapshots, PID, window layer, and frame overlap as a proxy for current workspace membership (<code>PublicWorkspaceFilter.swift</code>). Manual validation found behavior working as expected, but severity remains medium because future macOS, fullscreen, Stage Manager, and multi-display behavior can still regress.</p>
     </section>
     <section class="risk">
       <h3>Limited automated test coverage</h3>
-      <p><span class="badge badge-amber">Gap</span> The SwiftPM test target covers workspace filtering, including elevated-window exclusion, auxiliary-window candidate theft, and ordering. Inventory retry, session transitions, and activation boundaries remain untested (<code>Package.swift:13-23</code>, <code>PublicWorkspaceFilterTests.swift:14-78</code>). Severity: medium, because the remaining flows are behavior-heavy and easy to regress.</p>
+      <p><span class="badge badge-amber">Gap</span> The SwiftPM test target covers workspace filtering, including elevated-window exclusion, auxiliary-window candidate theft, ordering, process isolation, strongest-overlap matching, tie-breaking, deduplication, and the overlap threshold. Inventory retry, session transitions, and activation boundaries remain untested (<code>Package.swift:13-23</code>, <code>PublicWorkspaceFilterTests.swift</code>). Severity: medium, because the remaining flows are behavior-heavy and easy to regress.</p>
     </section>
     <section class="risk">
       <h3>No Command-Tab suppression</h3>

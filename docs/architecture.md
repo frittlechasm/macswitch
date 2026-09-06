@@ -16,7 +16,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - `Sources/AppSwitcher/SwitcherSessionController.swift` builds and displays a switcher session.
 - `Sources/AppSwitcher/WindowInventoryService.swift` enumerates running apps and Accessibility windows, retrying transient AX messaging failures once.
 - `Sources/AppSwitcher/PublicWorkspaceFilter.swift` uses Core Graphics visible-window state to approximate the active workspace.
-- `Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift` covers elevated-window exclusion, auxiliary-window candidate theft, and front-to-back ordering.
+- `Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift` covers elevated-window exclusion, auxiliary-window candidate theft, front-to-back ordering, process isolation, strongest-overlap matching, tie-breaking, deduplication, and the overlap threshold.
 
 ## Major Modules
 
@@ -28,7 +28,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - Shortcut preferences: persists the selected shortcut in `UserDefaults` and exposes preset selection from the Settings window.
 - Session orchestration: checks permission when a session begins and again immediately before activation, snapshots candidates, filters to current-workspace candidates, renders the overlay, records stage latency, advances selection, and activates or cancels.
 - Window inventory: uses `NSWorkspace` and Accessibility to build `WindowCandidate` records. A `cannotComplete` AX window-list read is retried once before that app is omitted and a privacy-safe failure is logged.
-- Workspace filter: uses `CGWindowListCopyWindowInfo` and the strongest same-process frame overlap as a public-API visibility approximation. Only ordinary layer-zero windows can produce candidates, so elevated windows cannot consume or become candidates.
+- Workspace filter: uses `CGWindowListCopyWindowInfo` and the strongest same-process frame overlap as a public-API visibility approximation. Candidates are indexed by process once per snapshot, and each visible window selects its strongest unmatched candidate in one pass without a scored temporary array. Only ordinary layer-zero windows can produce candidates, so elevated windows cannot consume or become candidates.
 - Overlay: displays SwiftUI content in a floating borderless AppKit window with a Command-Tab-style system glass material, 130-point app icons, a selected tile inset 2 points inside the icon frame, a shared continuous 31-point corner radius for the selected tile and panel background, consistent 16-point panel padding, a selected-only label, inline duplicate-app window details, and selection state. Label length must not change the fixed app-to-app gap.
 - Activation: performs a bounded validation of the selected Accessibility window, then raises/focuses it and activates the owning app. A definitively stale selection performs no activation; indeterminate AX failures preserve the previous activation attempt.
 - Diagnostics: writes privacy-safe counts, allowlisted failure stages, numeric error codes, and per-opening overlay latency to the system log without storing history or window content. Stage identifiers, counts, codes, and timing are public and queryable in persisted logs; app names, shortcut names, roles, process identifiers, and unexpected error descriptions remain private.

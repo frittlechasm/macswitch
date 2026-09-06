@@ -23,6 +23,18 @@ private let processIdentifier: pid_t = 42
 @Test func layerZeroCandidatesPreserveFrontToBackOrder() {
     #expect(filteredIDsInVisibleWindowOrder() == ["back", "front"])
 }
+
+@Test func matchingUsesProcessAndStrongestOverlap() {
+    #expect(filteredIDsForProcessAndOverlap() == ["strongest-same-process"])
+}
+
+@Test func equalMatchesPreserveCandidateOrderAndAreConsumedOnce() {
+    #expect(filteredIDsForEqualMatches() == ["first", "second"])
+}
+
+@Test func matchingRequiresMoreThanHalfOverlap() {
+    #expect(filteredIDsAtThreshold() == [])
+}
 #elseif canImport(XCTest)
 final class PublicWorkspaceFilterTests: XCTestCase {
     func testElevatedWindowCannotConsumeOrdinaryCandidate() {
@@ -35,6 +47,18 @@ final class PublicWorkspaceFilterTests: XCTestCase {
 
     func testLayerZeroCandidatesPreserveFrontToBackOrder() {
         XCTAssertEqual(filteredIDsInVisibleWindowOrder(), ["back", "front"])
+    }
+
+    func testMatchingUsesProcessAndStrongestOverlap() {
+        XCTAssertEqual(filteredIDsForProcessAndOverlap(), ["strongest-same-process"])
+    }
+
+    func testEqualMatchesPreserveCandidateOrderAndAreConsumedOnce() {
+        XCTAssertEqual(filteredIDsForEqualMatches(), ["first", "second"])
+    }
+
+    func testMatchingRequiresMoreThanHalfOverlap() {
+        XCTAssertEqual(filteredIDsAtThreshold(), [])
     }
 }
 #endif
@@ -77,16 +101,64 @@ private func filteredIDsInVisibleWindowOrder() -> [String] {
     return result.map(\.id)
 }
 
-private func makeCandidate(id: String, frame: CGRect) -> WindowCandidate {
+private func filteredIDsForProcessAndOverlap() -> [String] {
+    let visibleFrame = CGRect(x: 0, y: 0, width: 100, height: 100)
+    let candidates = [
+        makeCandidate(id: "perfect-other-process", frame: visibleFrame, processID: 7),
+        makeCandidate(id: "weaker-same-process", frame: CGRect(x: 10, y: 0, width: 100, height: 100)),
+        makeCandidate(id: "strongest-same-process", frame: visibleFrame)
+    ]
+
+    let result = PublicWorkspaceFilter().filter(
+        candidates,
+        visibleWindows: [makeVisibleWindow(frame: visibleFrame, layer: 0)]
+    )
+    return result.map(\.id)
+}
+
+private func filteredIDsForEqualMatches() -> [String] {
+    let frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+    let candidates = [
+        makeCandidate(id: "first", frame: frame),
+        makeCandidate(id: "second", frame: frame)
+    ]
+    let visibleWindows = [
+        makeVisibleWindow(frame: frame, layer: 0),
+        makeVisibleWindow(frame: frame, layer: 0)
+    ]
+
+    let result = PublicWorkspaceFilter().filter(candidates, visibleWindows: visibleWindows)
+    return result.map(\.id)
+}
+
+private func filteredIDsAtThreshold() -> [String] {
+    let candidate = makeCandidate(
+        id: "half-overlap",
+        frame: CGRect(x: 0, y: 0, width: 100, height: 100)
+    )
+    let visibleWindow = makeVisibleWindow(
+        frame: CGRect(x: 0, y: 0, width: 200, height: 100),
+        layer: 0
+    )
+
+    let result = PublicWorkspaceFilter().filter([candidate], visibleWindows: [visibleWindow])
+    return result.map(\.id)
+}
+
+private func makeCandidate(
+    id: String,
+    frame: CGRect,
+    processID: pid_t = processIdentifier
+) -> WindowCandidate {
     WindowCandidate(
         id: id,
-        processIdentifier: processIdentifier,
+        processIdentifier: processID,
         appName: "Test App",
         bundleIdentifier: "com.example.test",
         title: id,
         frame: frame,
         appIcon: nil,
-        axWindow: AXUIElementCreateApplication(processIdentifier)
+        axWindow: AXUIElementCreateApplication(processID)
     )
 }
 

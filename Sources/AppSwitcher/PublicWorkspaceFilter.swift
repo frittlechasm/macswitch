@@ -17,6 +17,10 @@ final class PublicWorkspaceFilter {
         _ candidates: [WindowCandidate],
         visibleWindows: [VisibleWindowSnapshot]
     ) -> [WindowCandidate] {
+        let candidateIndexesByProcessIdentifier = Dictionary(
+            grouping: candidates.indices,
+            by: { candidates[$0].processIdentifier }
+        )
         var matchedCandidateIndexes = Set<Int>()
 
         return visibleWindows.compactMap { visibleWindow in
@@ -24,9 +28,14 @@ final class PublicWorkspaceFilter {
                 return nil
             }
 
+            guard let candidateIndexes = candidateIndexesByProcessIdentifier[visibleWindow.processIdentifier] else {
+                return nil
+            }
+
             guard let candidateIndex = bestCandidateIndex(
                 for: visibleWindow,
                 candidates: candidates,
+                candidateIndexes: candidateIndexes,
                 excluding: matchedCandidateIndexes
             ) else {
                 return nil
@@ -76,24 +85,30 @@ final class PublicWorkspaceFilter {
     private func bestCandidateIndex(
         for visibleWindow: VisibleWindowSnapshot,
         candidates: [WindowCandidate],
+        candidateIndexes: [Int],
         excluding matchedCandidateIndexes: Set<Int>
     ) -> Int? {
-        candidates.indices.compactMap { index -> (index: Int, score: CGFloat)? in
+        var bestMatch: (index: Int, score: CGFloat)?
+
+        for index in candidateIndexes {
             guard !matchedCandidateIndexes.contains(index) else {
-                return nil
+                continue
             }
 
             guard let score = matchScore(
                 candidate: candidates[index],
                 visibleWindow: visibleWindow
             ) else {
-                return nil
+                continue
             }
 
-            return (index, score)
-        }.max { first, second in
-            first.score < second.score
-        }?.index
+            if let currentBest = bestMatch, score <= currentBest.score {
+                continue
+            }
+            bestMatch = (index, score)
+        }
+
+        return bestMatch?.index
     }
 
     /// Scores same-process windows using intersection over union so containment cannot dominate.
