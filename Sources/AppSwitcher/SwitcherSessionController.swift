@@ -89,28 +89,13 @@ final class SwitcherSessionController {
         overlayController.show(candidates: candidates, selectedIndex: selectedIndex)
         let presentationCompletedAt = ProcessInfo.processInfo.systemUptime
 
-        logOverlayLatency(
-            total: presentationCompletedAt - requestedAt,
-            inventory: inventoryCompletedAt - inventoryStartedAt,
-            filtering: filteringCompletedAt - filteringStartedAt,
-            presentation: presentationCompletedAt - presentationStartedAt
-        )
-    }
-
-    /// Records production-safe stage timings for each successful overlay presentation.
-    private func logOverlayLatency(
-        total: TimeInterval,
-        inventory: TimeInterval,
-        filtering: TimeInterval,
-        presentation: TimeInterval
-    ) {
         let millisecondsPerSecond = 1_000.0
 
         Diagnostics.logOverlayLatency(
-            totalMilliseconds: total * millisecondsPerSecond,
-            inventoryMilliseconds: inventory * millisecondsPerSecond,
-            filteringMilliseconds: filtering * millisecondsPerSecond,
-            presentationMilliseconds: presentation * millisecondsPerSecond
+            totalMilliseconds: (presentationCompletedAt - requestedAt) * millisecondsPerSecond,
+            inventoryMilliseconds: (inventoryCompletedAt - inventoryStartedAt) * millisecondsPerSecond,
+            filteringMilliseconds: (filteringCompletedAt - filteringStartedAt) * millisecondsPerSecond,
+            presentationMilliseconds: (presentationCompletedAt - presentationStartedAt) * millisecondsPerSecond
         )
     }
 

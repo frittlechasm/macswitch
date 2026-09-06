@@ -11,8 +11,4 @@ struct WindowCandidate: Identifiable {
     let frame: CGRect
     let appIcon: NSImage?
     let axWindow: AXUIElement
-
-    var displayTitle: String {
-        title.isEmpty ? appName : title
-    }
 }

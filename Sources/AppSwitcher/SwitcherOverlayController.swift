@@ -50,7 +50,6 @@ final class SwitcherOverlayController {
 
         let frame = preferredFrame(candidates: candidates)
         window.setFrame(frame, display: true)
-        window.invalidateShadow()
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -68,7 +67,7 @@ final class SwitcherOverlayController {
         let metrics = SwitcherOverlayContentView.metrics
         let visibleCount = min(max(candidates.count, 1), metrics.maximumVisibleItems)
         let width = min(
-            CGFloat(visibleCount) * metrics.itemWidth + CGFloat(max(visibleCount - 1, 0)) * metrics.itemSpacing + metrics.contentInset * 2,
+            CGFloat(visibleCount) * metrics.iconSize + CGFloat(max(visibleCount - 1, 0)) * metrics.itemSpacing + metrics.contentInset * 2,
             screenFrame.width - metrics.screenMargin * 2
         )
         let height = metrics.itemHeight + metrics.contentInset * 2
@@ -96,11 +95,7 @@ private struct SwitcherOverlayContentView: View {
         let labelHeight: CGFloat = 10
         let labelFontSize: CGFloat = 13
 
-        var selectorCornerRadius: CGFloat { backgroundCornerRadius }
-
         var selectorSize: CGFloat { iconSize - selectorInset * 2 }
-
-        var itemWidth: CGFloat { iconSize }
 
         var itemHeight: CGFloat {
             iconSize + labelTopGap + labelHeight
@@ -114,14 +109,10 @@ private struct SwitcherOverlayContentView: View {
 
     var body: some View {
         let visibleRange = visibleCandidateRange()
-        let visibleCandidates = Array(candidates[visibleRange])
-        let itemWidth = Self.metrics.itemWidth
 
         HStack(alignment: .top, spacing: Self.metrics.itemSpacing) {
-            ForEach(Array(visibleCandidates.enumerated()), id: \.element.id) { offset, candidate in
-                let index = visibleRange.lowerBound + offset
-                candidateView(candidate: candidate, index: index, itemWidth: itemWidth)
-                    .frame(width: itemWidth, height: Self.metrics.itemHeight, alignment: .top)
+            ForEach(Array(candidates[visibleRange].enumerated()), id: \.element.id) { offset, candidate in
+                candidateView(candidate: candidate, index: visibleRange.lowerBound + offset)
             }
         }
         .padding(Self.metrics.contentInset)
@@ -144,8 +135,9 @@ private struct SwitcherOverlayContentView: View {
     }
 
     private func duplicateWindowDetail(for candidate: WindowCandidate, at index: Int) -> String? {
-        let matches = candidates.filter { sameApplication($0, candidate) }
-        guard matches.count > 1 else {
+        guard candidates.indices.contains(where: {
+            $0 != index && sameApplication(candidates[$0], candidate)
+        }) else {
             return nil
         }
 
@@ -175,15 +167,15 @@ private struct SwitcherOverlayContentView: View {
     }
 
     @ViewBuilder
-    private func candidateView(candidate: WindowCandidate, index: Int, itemWidth: CGFloat) -> some View {
+    private func candidateView(candidate: WindowCandidate, index: Int) -> some View {
         let selected = index == selectedIndex
         VStack(spacing: Self.metrics.labelTopGap) {
             ZStack {
                 if selected {
-                    RoundedRectangle(cornerRadius: Self.metrics.selectorCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: Self.metrics.backgroundCornerRadius, style: .continuous)
                         .fill(Color.white.opacity(0.20))
                         .overlay(
-                            RoundedRectangle(cornerRadius: Self.metrics.selectorCornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: Self.metrics.backgroundCornerRadius, style: .continuous)
                                 .stroke(Color.white.opacity(0.58), lineWidth: 2)
                         )
                         .frame(
@@ -211,7 +203,7 @@ private struct SwitcherOverlayContentView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(
-                        width: itemWidth,
+                        width: Self.metrics.iconSize,
                         height: Self.metrics.labelHeight,
                         alignment: .center
                     )
@@ -220,7 +212,7 @@ private struct SwitcherOverlayContentView: View {
                     .frame(height: Self.metrics.labelHeight)
             }
         }
-        .frame(width: itemWidth, height: Self.metrics.itemHeight, alignment: .top)
+        .frame(width: Self.metrics.iconSize, height: Self.metrics.itemHeight, alignment: .top)
         .accessibilityLabel(selectedLabel(for: candidate, at: index))
     }
 }
