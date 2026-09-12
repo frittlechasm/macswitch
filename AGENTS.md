@@ -1,24 +1,24 @@
-- Keep this file small and concise.
-- Update this file only when a new repo-level agent workflow rule is introduced.
-- Product name is `Mac Workspace Switcher`; use that branding in UI, metadata, and docs.
-- Keep agent-facing documents in `docs/`; do not add new root-level planning or explainer files.
+Keep this file concise and limited to durable repo-specific rules.
 
 ## Source Of Truth
 
 - `CONTEXT.md` for product/domain vocabulary.
 - `README.md` for current scope, run instructions, and Accessibility permission notes.
 - `docs/architecture.md` for the agent-readable architecture overview.
-- `docs/` for future agent-facing Markdown and human-readable HTML docs.
 
-## Rules
+## Development
 
-- This is a native Swift/AppKit macOS app built with Swift Package Manager.
-- Prefer public macOS APIs. Accessibility APIs are expected for window discovery and activation.
-- Run checks with `swift build`; use `swift run AppSwitcher` only when runtime behavior needs verification.
-- The app requires macOS Accessibility permission for realistic manual testing.
-- Never write a commit message or raise a PR without asking first.
-- Before implementing a new feature or material product/architecture change, align the plan with `CONTEXT.md` and existing docs.
-- When changing product vocabulary, update `CONTEXT.md`.
-- Agent-readable docs must be Markdown files. Human-readable docs must be HTML files.
-- When changing architecture or durable implementation guidance, update the relevant Markdown source under `docs/` and its matching HTML companion for humans.
-- When adding tests in the future, keep them in the SwiftPM test structure and document any new test workflow in `README.md` or `docs/`.
+- Prefer public macOS APIs, including Accessibility for window discovery and activation.
+- For code changes, run `swift build`. Run relevant SwiftPM tests with `scripts/test.sh`.
+- For runtime checks, use `scripts/run-app-bundle.sh` with Accessibility permission.
+- Quit the old instance first and preserve the signing identity when testing permission persistence.
+- Use `Mac Workspace Switcher` in UI, metadata, and docs.
+- Preserve the bundle identifier and local checkout path during repository renames unless requested.
+
+## Documentation
+
+- Before new features or material product/architecture changes, align with `CONTEXT.md` and existing docs.
+- Update `CONTEXT.md` when product vocabulary changes.
+- Keep durable agent docs in `docs/` as Markdown and human companions as HTML.
+- Keep existing Markdown/HTML pairs in sync when their content changes. `README.md` remains the concise user-facing entry point.
+- Keep temporary plans and explainers in ignored `plans/`; never stage them or move them into `docs/` merely to satisfy the documentation rule.
