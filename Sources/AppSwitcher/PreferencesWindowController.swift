@@ -4,6 +4,11 @@ final class PreferencesWindowController: NSWindowController {
     private let shortcutStore: SwitcherShortcutStore
     private let onShortcutChanged: (SwitcherShortcut) -> Bool
     private let shortcutPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let resetButton = NSButton(
+        title: "Reset to Option-Tab",
+        target: nil,
+        action: nil
+    )
     private let statusLabel = NSTextField(labelWithString: "")
 
     init(shortcutStore: SwitcherShortcutStore, onShortcutChanged: @escaping (SwitcherShortcut) -> Bool) {
@@ -11,7 +16,7 @@ final class PreferencesWindowController: NSWindowController {
         self.onShortcutChanged = onShortcutChanged
 
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 380, height: 170),
+            contentRect: CGRect(x: 0, y: 0, width: 440, height: 190),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -42,8 +47,17 @@ final class PreferencesWindowController: NSWindowController {
             return
         }
 
+        let appIcon = NSImageView(image: NSApplication.shared.applicationIconImage)
+        appIcon.imageScaling = .scaleProportionallyUpOrDown
+        appIcon.translatesAutoresizingMaskIntoConstraints = false
+
         let titleLabel = NSTextField(labelWithString: "Mac Workspace Switcher Shortcut")
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+
+        let headerStack = NSStackView(views: [appIcon, titleLabel])
+        headerStack.orientation = .horizontal
+        headerStack.alignment = .centerY
+        headerStack.spacing = 10
 
         let helpLabel = NSTextField(labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher.")
         helpLabel.textColor = .secondaryLabelColor
@@ -58,11 +72,19 @@ final class PreferencesWindowController: NSWindowController {
         shortcutPopup.target = self
         shortcutPopup.action = #selector(shortcutSelectionChanged)
 
+        resetButton.target = self
+        resetButton.action = #selector(resetShortcut)
+
+        let shortcutControls = NSStackView(views: [shortcutPopup, resetButton])
+        shortcutControls.orientation = .horizontal
+        shortcutControls.alignment = .centerY
+        shortcutControls.spacing = 10
+
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byWordWrapping
         statusLabel.maximumNumberOfLines = 2
 
-        let stackView = NSStackView(views: [titleLabel, shortcutPopup, helpLabel, statusLabel])
+        let stackView = NSStackView(views: [headerStack, shortcutControls, helpLabel, statusLabel])
         stackView.orientation = .vertical
         stackView.alignment = .leading
         stackView.spacing = 10
@@ -74,6 +96,8 @@ final class PreferencesWindowController: NSWindowController {
             stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
+            appIcon.widthAnchor.constraint(equalToConstant: 32),
+            appIcon.heightAnchor.constraint(equalToConstant: 32),
             shortcutPopup.widthAnchor.constraint(equalToConstant: 180)
         ])
     }
@@ -93,11 +117,20 @@ final class PreferencesWindowController: NSWindowController {
             return
         }
 
-        if onShortcutChanged(shortcut) {
-            statusLabel.stringValue = "Active shortcut: \(shortcut.displayName)"
-        } else {
+        apply(shortcut)
+    }
+
+    @objc private func resetShortcut() {
+        apply(.defaultShortcut)
+    }
+
+    private func apply(_ shortcut: SwitcherShortcut) {
+        guard onShortcutChanged(shortcut) else {
             refreshSelection()
             statusLabel.stringValue = "Could not register that shortcut. Mac Workspace Switcher kept \(shortcutStore.selectedShortcut.displayName)."
+            return
         }
+
+        refreshSelection()
     }
 }
