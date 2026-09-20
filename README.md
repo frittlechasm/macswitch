@@ -13,14 +13,14 @@ _Switch between individual windows in your current macOS workspace._
 
 ## Install
 
-v0.1.1 is a source-only release. A prebuilt application is not available yet.
+[v0.1.1](https://github.com/frittlechasm/macswitch/releases/tag/v0.1.1) is the latest release. It is source-only; a prebuilt application is not available yet.
 
 Requires macOS 13 or later.
 
-To build and run from source:
+To build and run this release from source:
 
 ```bash
-git clone https://github.com/frittlechasm/macswitch.git
+git clone --branch v0.1.1 --depth 1 https://github.com/frittlechasm/macswitch.git
 cd macswitch
 CODESIGN_IDENTITY=- scripts/run-app-bundle.sh
 ```
@@ -50,7 +50,7 @@ There is no hard-coded app blacklist for now. By default, the switcher excludes:
 ## Settings
 
 Use the menu-bar controls to manage Accessibility permission or select a different shortcut.
-The available presets are `Option-Tab`, `Command-Tab (Experimental)`, `Control-Tab`, `Control-Option-Tab`, and Option-Backtick.
+The available presets are `Option-Tab`, `Command-Tab (Experimental)`, `Control-Tab`, `Control-Option-Tab`, and `Option-Backtick`.
 
 Mac Workspace Switcher registers ordinary shortcuts through macOS's public hotkey API. For `Command-Tab`, it uses a public Core Graphics event tap to intercept the chord before the built-in app switcher. Settings marks this shortcut as experimental because the path requires Accessibility permission and may vary across macOS releases. If the event tap cannot be created, Settings keeps the current shortcut and offers `Option-Tab` as the default fallback. The app does not use private APIs to disable macOS's built-in shortcut.
 
