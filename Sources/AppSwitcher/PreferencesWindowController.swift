@@ -60,7 +60,7 @@ final class PreferencesWindowController: NSWindowController {
         headerStack.spacing = 10
 
         let helpLabel = NSTextField(
-            labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher. macOS may reject Command-Tab."
+            labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher. Command-Tab requires Accessibility permission."
         )
         helpLabel.textColor = .secondaryLabelColor
         helpLabel.lineBreakMode = .byWordWrapping
@@ -130,7 +130,7 @@ final class PreferencesWindowController: NSWindowController {
         guard onShortcutChanged(shortcut) else {
             refreshSelection()
             if shortcut == .commandTab {
-                statusLabel.stringValue = "macOS did not allow Command-Tab through its public hotkey API. Choose another shortcut or reset to Option-Tab."
+                statusLabel.stringValue = "Could not intercept Command-Tab. Confirm Accessibility permission or reset to Option-Tab."
             } else {
                 statusLabel.stringValue = "Could not register that shortcut. Mac Workspace Switcher kept \(shortcutStore.selectedShortcut.displayName)."
             }

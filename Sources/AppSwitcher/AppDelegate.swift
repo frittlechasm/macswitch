@@ -31,9 +31,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let shortcutStore = SwitcherShortcutStore()
         self.shortcutStore = shortcutStore
 
-        let hotKeyMonitor = GlobalHotKeyMonitor { [weak self, weak sessionController] in
+        let hotKeyMonitor = GlobalHotKeyMonitor { [weak self, weak sessionController] selectionOffset in
             let shortcut = self?.hotKeyMonitor?.shortcut ?? .defaultShortcut
-            sessionController?.handleSwitcherShortcut(activationModifierFlags: shortcut.eventModifierFlags)
+            sessionController?.handleSwitcherShortcut(
+                activationModifierFlags: shortcut.eventModifierFlags,
+                selectionOffset: selectionOffset
+            )
         }
 
         self.hotKeyMonitor = hotKeyMonitor
@@ -139,6 +142,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 errorCode: status,
                 privateContext: shortcut.displayName
             )
+        case GlobalHotKeyError.createEventTapFailed:
+            Diagnostics.logFailure(
+                .hotKeyRegisterFailed,
+                privateContext: "Could not create event tap for \(shortcut.displayName)"
+            )
         default:
             Diagnostics.logFailure(
                 .hotKeyRegisterUnknownError,
@@ -154,6 +162,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case GlobalHotKeyError.installHandlerFailed(let status),
              GlobalHotKeyError.registerHotKeyFailed(let status):
             errorCode = status
+        case GlobalHotKeyError.createEventTapFailed:
+            errorCode = nil
         default:
             errorCode = nil
         }

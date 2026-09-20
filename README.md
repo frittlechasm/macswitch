@@ -52,7 +52,9 @@ There is no hard-coded app blacklist for now. By default, the switcher excludes:
 Use the menu-bar controls to manage Accessibility permission or select a different shortcut.
 The available presets are `Option-Tab`, `Command-Tab`, `Control-Tab`, `Control-Option-Tab`, and Option-Backtick.
 
-Mac Workspace Switcher attempts to register shortcuts through macOS's public hotkey API. macOS may reserve `Command-Tab` for its own app switcher and reject that choice. If it does, Settings keeps the current shortcut and offers `Option-Tab` as the default fallback. The app does not suppress or replace macOS's built-in app switcher through private APIs.
+Mac Workspace Switcher registers ordinary shortcuts through macOS's public hotkey API. For `Command-Tab`, it uses a public Core Graphics event tap to intercept the chord before the built-in app switcher. This experimental path requires Accessibility permission and may vary across macOS releases. If the event tap cannot be created, Settings keeps the current shortcut and offers `Option-Tab` as the default fallback. The app does not use private APIs to disable macOS's built-in shortcut.
+
+See [Carbon Hot Keys and Core Graphics Event Taps](https://notes.pslop.dev/83a2396a-5002-4769-8839-aa86bf22e18b) for a visual explanation of the two input paths and why Command-Tab remains experimental.
 
 <div align="center">
   <img src="./docs/images/menu-bar.png" alt="Mac Workspace Switcher menu-bar controls" width="38%" />

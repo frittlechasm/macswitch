@@ -17,7 +17,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - `Sources/AppSwitcher/WindowInventoryService.swift` enumerates running apps and Accessibility windows, retrying transient AX messaging failures once.
 - `Sources/AppSwitcher/PublicWorkspaceFilter.swift` uses Core Graphics visible-window state to approximate the active workspace.
 - `Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift` covers elevated-window exclusion, auxiliary-window candidate theft, front-to-back ordering, process isolation, strongest-overlap matching, tie-breaking, deduplication, and the overlap threshold.
-- `Tests/AppSwitcherTests/SwitcherShortcutTests.swift` covers Command-Tab modifier mapping and exclusion from automatic fallback selection.
+- `Tests/AppSwitcherTests/SwitcherShortcutTests.swift` covers Command-Tab modifier mapping, event filtering, and exclusion from automatic fallback selection.
 
 ## Major Modules
 
@@ -25,7 +25,7 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 - Development app bundle: builds the SwiftPM executable, creates `.build/debug/Mac Workspace Switcher.app` with bundle metadata, signs it with the configured local identity, and verifies the completed bundle so macOS Accessibility trust survives rebuilds.
 - Bundle launcher: opens the generated `.app` bundle from terminal workflows so Accessibility trust is associated with Mac Workspace Switcher rather than the terminal or shell wrapper.
 - Status bar: exposes menu actions for showing the switcher, checking Accessibility permission, opening settings, and quitting.
-- Hotkey input: registers the selected Switcher Shortcut through Carbon event hotkey APIs.
+- Hotkey input: registers ordinary Switcher Shortcuts through Carbon and intercepts Command-Tab/Command-Shift-Tab through a public active Core Graphics event tap.
 - Shortcut preferences: persists the selected shortcut in `UserDefaults` and exposes preset selection from the Settings window.
 - Session orchestration: checks permission when a session begins and again immediately before activation, snapshots candidates, filters to current-workspace candidates, renders the overlay, records stage latency, advances selection, and activates or cancels.
 - Window inventory: uses `NSWorkspace` and Accessibility to build `WindowCandidate` records. A `cannotComplete` AX window-list read is retried once before that app is omitted and a privacy-safe failure is logged.
@@ -44,13 +44,13 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 
 - AppKit for app lifecycle, menu-bar UI, overlay windows, system glass material, screens, and application activation.
 - SwiftUI for the overlay content layout, app icons, selected label, and selection ring.
-- Carbon for global hotkey registration.
+- Carbon for ordinary global hotkey registration and Core Graphics for Command-Tab event interception.
 - ApplicationServices Accessibility for permission checks, window discovery, and window focus.
 - Core Graphics for visible window-server snapshots used by the workspace filter.
 
 ## Key Flow: Switch Window
 
-1. Carbon emits the registered hotkey callback and invokes the hotkey monitor closure.
+1. Carbon emits the registered hotkey callback for ordinary shortcuts. For Command-Tab, a public HID-level Core Graphics event tap invokes the callback and consumes the key-down and key-up events.
 2. `AppDelegate` forwards the event to `SwitcherSessionController.handleSwitcherShortcut()`.
 3. The session controller advances selection if the overlay is visible; otherwise it starts a new session.
 4. A new session checks Accessibility permission, snapshots raw candidates, filters current-workspace candidates, resets selection, shows the overlay, and logs total, inventory, filtering, and presentation latency.
@@ -69,7 +69,7 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 - Session-boundary permission handling: Accessibility trust is checked when a session begins and again after the overlay closes but before activation. If permission was removed during the session, the app requests the standard macOS prompt, logs a privacy-safe diagnostic, and performs no activation. Continuous monitoring, custom alerts, and automatic System Settings navigation are deferred. A narrow permission-change race remains after the final check.
 - Production overlay latency measurement: every successful overlay opening uses monotonic system uptime to log total request-to-`show()` return latency plus inventory, filtering, and the synchronous overlay `show()` call. The total also includes main-queue dispatch and session orchestration, so the stage values do not necessarily add up to it. The metric does not measure compositor latency. A dedicated default-level unified logger makes only these four numeric measurements public and queryable. The instrumentation is unconditional, retains no history or window content, and must remain enabled through the first production rollout. A performance target will be chosen only after rollout measurements exist.
 - Structured reliability diagnostics: a closed stage allowlist records actionable inventory, permission, activation, and hotkey failures at the persistent error level. Stage identifiers and optional numeric AX/OSStatus codes are public; descriptive context is explicitly private. Candidate counts are public at the default persistent level. Non-actionable AX timeout-configuration warnings and ordinary lifecycle/status messages retain the existing private diagnostic path to avoid noisy production failure logs. No logs are uploaded or stored separately by the app.
-- Preset-based Switcher Shortcut configuration: keeps hotkey changes simple. Settings attempts to register Command-Tab through the public Carbon hotkey API, but macOS may reserve it; rejection keeps the current shortcut and directs the user to an alternate preset or the Option-Tab reset.
+- Preset-based Switcher Shortcut configuration: keeps hotkey changes simple. Ordinary shortcuts use Carbon. Command-Tab and Command-Shift-Tab use a public active Core Graphics event tap that consumes matching events and supports forward and reverse selection. Event-tap creation failure keeps the current shortcut and directs the user to an alternate preset or the Option-Tab reset.
 - Service-per-responsibility composition: keeps the prototype simple. Dependency injection remains manual, while the workspace filter exposes a snapshot-based internal seam for deterministic tests.
 
 ## Verification
@@ -80,8 +80,8 @@ The selected Switcher Shortcut is stored in `UserDefaults`. There is no database
 ## Gaps and Risks
 
 - Space membership is approximate by API design; manually validated behavior is working as expected, but future macOS, fullscreen, Stage Manager, and multi-display changes remain regression risks.
-- Automated coverage protects workspace filtering and core Command-Tab shortcut mapping; inventory retry, hotkey registration outcomes, session transitions, and activation boundaries remain untested.
-- Full Command-Tab-style event suppression is not implemented. The app can request Command-Tab only through the public Carbon hotkey API and cannot override macOS when the system rejects the reserved shortcut.
+- Automated coverage protects workspace filtering and Command-Tab mapping/filtering; event-tap creation, inventory retry, hotkey registration outcomes, session transitions, and activation boundaries remain untested.
+- Command-Tab interception uses a public HID-level Core Graphics event tap. Creation succeeds in the signed development bundle with Accessibility permission, but physical-key validation against the built-in macOS switcher remains required, and behavior may vary across macOS releases.
 - Switcher Shortcut choices are preset-based rather than free-form key capture.
 - The overlay currently caps visible candidates at seven and keeps the selection centered as the visible slice changes, but it has no overflow count or scrollbar affordance.
 - There is no signed/notarized release app bundle, entitlement review, hardened runtime configuration, or distribution packaging path yet.

@@ -38,17 +38,19 @@ final class SwitcherSessionController {
 
     func handleSwitcherShortcut(
         trigger: SwitcherSessionTrigger = .hotkey,
-        activationModifierFlags: NSEvent.ModifierFlags = []
+        activationModifierFlags: NSEvent.ModifierFlags = [],
+        selectionOffset: Int = 1
     ) {
         let requestedAt = ProcessInfo.processInfo.systemUptime
 
         DispatchQueue.main.async {
             if self.overlayController.isVisible {
-                self.moveSelection(by: 1)
+                self.moveSelection(by: selectionOffset)
             } else {
                 self.beginSession(
                     trigger: trigger,
                     activationModifierFlags: activationModifierFlags,
+                    initialSelectionOffset: selectionOffset,
                     requestedAt: requestedAt
                 )
             }
@@ -59,6 +61,7 @@ final class SwitcherSessionController {
     private func beginSession(
         trigger: SwitcherSessionTrigger,
         activationModifierFlags: NSEvent.ModifierFlags,
+        initialSelectionOffset: Int,
         requestedAt: TimeInterval
     ) {
         guard permissionService.isTrusted else {
@@ -76,7 +79,9 @@ final class SwitcherSessionController {
         let filteringCompletedAt = ProcessInfo.processInfo.systemUptime
 
         Diagnostics.logCandidateCounts(raw: rawCandidates.count, currentWorkspace: candidates.count)
-        selectedIndex = candidates.count > 1 ? 1 : 0
+        selectedIndex = candidates.count > 1
+            ? (initialSelectionOffset + candidates.count) % candidates.count
+            : 0
 
         guard !candidates.isEmpty else {
             Diagnostics.log("No current-workspace window candidates found")
