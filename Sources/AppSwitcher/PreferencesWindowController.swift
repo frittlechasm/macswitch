@@ -60,14 +60,14 @@ final class PreferencesWindowController: NSWindowController {
         headerStack.spacing = 10
 
         let helpLabel = NSTextField(
-            labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher. Command-Tab requires Accessibility permission."
+            labelWithString: "Choose the shortcut that opens and advances Mac Workspace Switcher."
         )
         helpLabel.textColor = .secondaryLabelColor
         helpLabel.lineBreakMode = .byWordWrapping
         helpLabel.maximumNumberOfLines = 2
 
         for shortcut in SwitcherShortcut.allCases {
-            shortcutPopup.addItem(withTitle: shortcut.displayName)
+            shortcutPopup.addItem(withTitle: shortcut.settingsDisplayName)
             shortcutPopup.lastItem?.representedObject = shortcut.rawValue
         }
 
@@ -100,14 +100,19 @@ final class PreferencesWindowController: NSWindowController {
             stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             appIcon.widthAnchor.constraint(equalToConstant: 32),
             appIcon.heightAnchor.constraint(equalToConstant: 32),
-            shortcutPopup.widthAnchor.constraint(equalToConstant: 180)
+            shortcutPopup.widthAnchor.constraint(equalToConstant: 200)
         ])
     }
 
     private func refreshSelection() {
         let selectedShortcut = shortcutStore.selectedShortcut
-        shortcutPopup.selectItem(withTitle: selectedShortcut.displayName)
-        statusLabel.stringValue = "Active shortcut: \(selectedShortcut.displayName)"
+        shortcutPopup.selectItem(withTitle: selectedShortcut.settingsDisplayName)
+
+        if selectedShortcut == .commandTab {
+            statusLabel.stringValue = "Active shortcut: \(selectedShortcut.settingsDisplayName)\nUses a low-level event tap and may vary by macOS version."
+        } else {
+            statusLabel.stringValue = "Active shortcut: \(selectedShortcut.displayName)"
+        }
     }
 
     @objc private func shortcutSelectionChanged() {

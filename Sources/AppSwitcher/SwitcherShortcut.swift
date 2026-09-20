@@ -32,6 +32,10 @@ enum SwitcherShortcut: String, CaseIterable {
         }
     }
 
+    var settingsDisplayName: String {
+        self == .commandTab ? "\(displayName) (Experimental)" : displayName
+    }
+
     var keyCode: UInt32 {
         switch self {
         case .optionTab, .commandTab, .controlTab, .controlOptionTab:

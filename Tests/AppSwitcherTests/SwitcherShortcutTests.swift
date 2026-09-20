@@ -13,6 +13,8 @@ import XCTest
 #if canImport(Testing)
 @Test func commandTabUsesCommandModifier() {
     #expect(SwitcherShortcut.commandTab.displayName == "Command-Tab")
+    #expect(SwitcherShortcut.commandTab.settingsDisplayName == "Command-Tab (Experimental)")
+    #expect(SwitcherShortcut.optionTab.settingsDisplayName == "Option-Tab")
     #expect(SwitcherShortcut.commandTab.eventModifierFlags == [.command])
 }
 
@@ -36,6 +38,8 @@ import XCTest
 final class SwitcherShortcutTests: XCTestCase {
     func testCommandTabUsesCommandModifier() {
         XCTAssertEqual(SwitcherShortcut.commandTab.displayName, "Command-Tab")
+        XCTAssertEqual(SwitcherShortcut.commandTab.settingsDisplayName, "Command-Tab (Experimental)")
+        XCTAssertEqual(SwitcherShortcut.optionTab.settingsDisplayName, "Option-Tab")
         XCTAssertEqual(SwitcherShortcut.commandTab.eventModifierFlags, [.command])
     }
 

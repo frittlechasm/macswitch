@@ -10,11 +10,12 @@ Keep the ordinary shortcuts on Carbon. Use the Core Graphics event tap only for 
 
 Moving every shortcut to the event tap would make the code path uniform, but it would also make every shortcut depend on a low-level input filter. That adds event filtering, run-loop lifecycle, timeout recovery, key-state tracking, and event suppression without improving ordinary shortcuts.
 
-Mark Command-Tab as experimental in Settings and in release notes while physical-key validation is incomplete. Use a small `Experimental` label beside the Command-Tab choice and a short explanation below the control. Avoid a warning dialog or banner.
+Command-Tab is marked experimental in Settings while physical-key validation is incomplete. The picker labels the option `Command-Tab (Experimental)`, and the active status explains why. The UI uses plain text instead of a warning dialog or decorative badge.
 
-Suggested copy:
+Settings copy:
 
-> Experimental: Command-Tab uses a low-level macOS event tap to replace the built-in app switcher. Behavior may vary by macOS version.
+> Active shortcut: Command-Tab (Experimental)<br>
+> Uses a low-level event tap and may vary by macOS version.
 
 ## What Carbon means here
 
