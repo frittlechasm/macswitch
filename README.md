@@ -13,7 +13,7 @@ _Switch between individual windows in your current macOS workspace._
 
 ## Install
 
-v0.1.0 is a source-only release. A prebuilt application is not available yet.
+v0.1.1 is a source-only release. A prebuilt application is not available yet.
 
 Requires macOS 13 or later.
 
