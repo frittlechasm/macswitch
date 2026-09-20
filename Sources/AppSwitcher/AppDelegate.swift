@@ -111,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let preferredShortcut = shortcutStore.selectedShortcut
-        let fallbackShortcuts = SwitcherShortcut.allCases.filter { $0 != preferredShortcut }
+        let fallbackShortcuts = SwitcherShortcut.automaticFallbacks.filter { $0 != preferredShortcut }
 
         for shortcut in [preferredShortcut] + fallbackShortcuts {
             if registerShortcut(shortcut, persistOnSuccess: shortcut != preferredShortcut) {

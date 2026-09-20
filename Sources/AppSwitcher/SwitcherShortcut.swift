@@ -4,16 +4,25 @@ import Foundation
 
 enum SwitcherShortcut: String, CaseIterable {
     case optionTab
+    case commandTab
     case controlTab
     case controlOptionTab
     case optionBacktick
 
     static let defaultShortcut: SwitcherShortcut = .optionTab
+    static let automaticFallbacks: [SwitcherShortcut] = [
+        .optionTab,
+        .controlTab,
+        .controlOptionTab,
+        .optionBacktick
+    ]
 
     var displayName: String {
         switch self {
         case .optionTab:
             return "Option-Tab"
+        case .commandTab:
+            return "Command-Tab"
         case .controlTab:
             return "Control-Tab"
         case .controlOptionTab:
@@ -25,7 +34,7 @@ enum SwitcherShortcut: String, CaseIterable {
 
     var keyCode: UInt32 {
         switch self {
-        case .optionTab, .controlTab, .controlOptionTab:
+        case .optionTab, .commandTab, .controlTab, .controlOptionTab:
             return UInt32(kVK_Tab)
         case .optionBacktick:
             return UInt32(kVK_ANSI_Grave)
@@ -36,6 +45,8 @@ enum SwitcherShortcut: String, CaseIterable {
         switch self {
         case .optionTab, .optionBacktick:
             return UInt32(optionKey)
+        case .commandTab:
+            return UInt32(cmdKey)
         case .controlTab:
             return UInt32(controlKey)
         case .controlOptionTab:
@@ -47,6 +58,8 @@ enum SwitcherShortcut: String, CaseIterable {
         switch self {
         case .optionTab, .optionBacktick:
             return [.option]
+        case .commandTab:
+            return [.command]
         case .controlTab:
             return [.control]
         case .controlOptionTab:

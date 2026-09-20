@@ -120,11 +120,12 @@ th { color: var(--text); }
         <li><code>Sources/AppSwitcher/WindowInventoryService.swift:5-168</code> enumerates apps and Accessibility windows, retrying transient AX messaging failures once.</li>
         <li><code>Sources/AppSwitcher/PublicWorkspaceFilter.swift</code> uses Core Graphics visible-window state and window layers to approximate the active workspace while excluding elevated floating windows.</li>
         <li><code>Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift</code> covers elevated-window exclusion, auxiliary-window candidate theft, and front-to-back ordering.</li>
+        <li><code>Tests/AppSwitcherTests/SwitcherShortcutTests.swift</code> covers Command-Tab modifier mapping and exclusion from automatic fallback selection.</li>
       </ul>
     </aside>
 
     <h2>Executive Summary</h2>
-    <p><span class="badge badge-green">Source-backed</span> Mac Workspace Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, activation, and a development app-bundle wrapper for Accessibility identity testing. <span class="badge badge-amber">Gap</span> Automated coverage currently protects workspace filtering only; the app has no signed release app bundle and uses a public-API approximation of Space membership that still needs regression coverage over time.</p>
+    <p><span class="badge badge-green">Source-backed</span> Mac Workspace Switcher is a small native macOS prototype with explicit service boundaries for permissions, shortcut preferences, hotkey input, window inventory, workspace filtering, overlay rendering, activation, and a development app-bundle wrapper for Accessibility identity testing. <span class="badge badge-amber">Gap</span> Automated coverage protects workspace filtering and core Command-Tab shortcut mapping; the app has no signed release app bundle and uses a public-API approximation of Space membership that still needs regression coverage over time.</p>
 
     <h2>System Purpose</h2>
     <p><span class="badge badge-green">Source-backed</span> The README describes a native Swift/AppKit macOS workspace switcher prototype that uses public macOS APIs, Accessibility for discovery and activation, a Command-Tab-style glass overlay with large app icons and a selected-only label with inline duplicate-app window details, visible non-minimized ordinary-window filtering, and a configurable Switcher Shortcut with Option-Tab as the default (<code>README.md:1-11</code>).</p>
@@ -268,7 +269,7 @@ th { color: var(--text); }
     </section>
     <section class="decision">
       <h3>Preset-based Switcher Shortcut configuration</h3>
-      <p><span class="badge badge-green">Source-backed</span> Shortcut selection is limited to known presets and persisted with UserDefaults. Tradeoff: simple and reliable for the prototype, but it is not yet free-form key capture.</p>
+      <p><span class="badge badge-green">Source-backed</span> Shortcut selection is limited to known presets and persisted with UserDefaults. Settings attempts to register Command-Tab through the public Carbon hotkey API, but macOS may reserve it; rejection keeps the current shortcut and directs the user to an alternate preset or the Option-Tab reset. Tradeoff: simple and reliable for the prototype, but it is not yet free-form key capture.</p>
     </section>
     <section class="decision">
       <h3>Service-per-responsibility composition</h3>
@@ -286,11 +287,11 @@ th { color: var(--text); }
     </section>
     <section class="risk">
       <h3>Limited automated test coverage</h3>
-      <p><span class="badge badge-amber">Gap</span> The SwiftPM test target covers workspace filtering, including elevated-window exclusion, auxiliary-window candidate theft, ordering, process isolation, strongest-overlap matching, tie-breaking, deduplication, and the overlap threshold. Inventory retry, session transitions, and activation boundaries remain untested (<code>Package.swift:13-23</code>, <code>PublicWorkspaceFilterTests.swift</code>). Severity: medium, because the remaining flows are behavior-heavy and easy to regress.</p>
+      <p><span class="badge badge-amber">Gap</span> The SwiftPM test target covers workspace filtering plus Command-Tab modifier mapping and fallback exclusion. Inventory retry, hotkey registration outcomes, session transitions, and activation boundaries remain untested (<code>Package.swift:13-23</code>, <code>PublicWorkspaceFilterTests.swift</code>, <code>SwitcherShortcutTests.swift</code>). Severity: medium, because the remaining flows are behavior-heavy and easy to regress.</p>
     </section>
     <section class="risk">
       <h3>No Command-Tab suppression</h3>
-      <p><span class="badge badge-amber">Gap</span> Full Command-Tab-style event suppression is not implemented. Severity: low for the current prototype because the validated model uses a configured alternate Switcher Shortcut.</p>
+      <p><span class="badge badge-amber">Gap</span> Full Command-Tab-style event suppression is not implemented. The app can request Command-Tab only through the public Carbon hotkey API and cannot override macOS when the system rejects the reserved shortcut. Severity: low for the current prototype because alternate Switcher Shortcut presets remain available.</p>
     </section>
     <section class="risk">
       <h3>Shortcut capture is preset-based</h3>
