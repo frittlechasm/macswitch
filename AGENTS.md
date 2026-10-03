@@ -11,6 +11,7 @@ Keep this file concise and limited to durable repo-specific rules.
 - Prefer public macOS APIs, including Accessibility for window discovery and activation.
 - For code changes, run `swift build`. Run relevant SwiftPM tests with `scripts/test.sh`.
 - For runtime checks, use `scripts/run-app-bundle.sh` with Accessibility permission.
+- If bundle signing stalls, check for a macOS Keychain prompt and report blocked runtime verification; do not repeatedly relaunch or change the signing identity.
 - Quit the old instance first and preserve the signing identity when testing permission persistence.
 - Use `Mac Workspace Switcher` in UI, metadata, and docs.
 - Preserve the bundle identifier and local checkout path during repository renames unless requested.

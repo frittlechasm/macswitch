@@ -1,6 +1,6 @@
 # Mac Workspace Switcher Architecture
 
-Agent-readable architecture reference for the native Swift/AppKit macOS workspace switcher prototype. Keep `docs/architecture.html` in sync as the human-readable companion.
+Architecture reference for the native Swift/AppKit workspace switcher. Keep `docs/architecture.html` in sync, and cite source files and symbols rather than line ranges that drift after edits.
 
 ## Summary
 
@@ -9,12 +9,12 @@ Mac Workspace Switcher is a SwiftPM macOS executable that runs as a menu-bar acc
 ## Evidence Summary
 
 - `Package.swift` defines the macOS 13 `AppSwitcher` executable target and an `AppSwitcherTests` test target.
-- `scripts/build-app-bundle.sh` wraps the SwiftPM executable in a development `.app` bundle named Mac Workspace Switcher, signs the completed bundle with a stable local identity, and verifies the signature for Accessibility identity testing.
-- `scripts/run-app-bundle.sh` builds and opens that bundle from the terminal without running the raw executable identity.
+- `scripts/build-app-bundle.sh` builds the development app bundle.
+- `scripts/run-app-bundle.sh` launches the development app bundle.
 - `Sources/AppSwitcher/main.swift` starts an AppKit accessory application.
 - `Sources/AppSwitcher/AppDelegate.swift` composes the core services.
 - `Sources/AppSwitcher/SwitcherSessionController.swift` builds and displays a switcher session.
-- `Sources/AppSwitcher/WindowInventoryService.swift` enumerates running apps and Accessibility windows, retrying transient AX messaging failures once.
+- `Sources/AppSwitcher/WindowInventoryService.swift` enumerates running apps and Accessibility windows.
 - `Sources/AppSwitcher/PublicWorkspaceFilter.swift` uses Core Graphics visible-window state to approximate the active workspace.
 - `Tests/AppSwitcherTests/PublicWorkspaceFilterTests.swift` covers elevated-window exclusion, auxiliary-window candidate theft, front-to-back ordering, process isolation, strongest-overlap matching, tie-breaking, deduplication, and the overlap threshold.
 - `Tests/AppSwitcherTests/SwitcherShortcutTests.swift` covers Command-Tab modifier mapping, experimental Settings labeling, event filtering, and exclusion from automatic fallback selection.

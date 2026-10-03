@@ -2,8 +2,7 @@
 
 # Mac Workspace Switcher
 
-[![License](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](./LICENSE)
-[![macOS](https://img.shields.io/badge/macOS-13%2B-111111?style=flat-square&logo=apple)](https://github.com/frittlechasm/macswitch/releases)
+[![License](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](./LICENSE) [![macOS](https://img.shields.io/badge/macOS-13%2B-111111?style=flat-square&logo=apple)](https://github.com/frittlechasm/macswitch/releases)
 
 <img src="./docs/images/switcher.png" alt="Mac Workspace Switcher showing visible window candidates" width="900" />
 
@@ -29,9 +28,9 @@ A signed and notarized download is planned for v0.1.2.
 
 ## Usage
 
-Grant Accessibility permission when prompted, then press `Option-Tab` to open the switcher.
-Keep pressing `Tab` or use the arrow keys to move between windows.
-Release `Option` or press `Return` to select; press `Escape` to cancel.
+- Grant Accessibility permission when prompted, then press `Option-Tab` to open the switcher.
+- Keep pressing `Tab` or use the arrow keys to move between windows.
+- Release `Option` or press `Return` to select; press `Escape` to cancel.
 
 Use the menu-bar item to check permission status or choose a different shortcut in Settings.
 
@@ -49,10 +48,13 @@ There is no hard-coded app blacklist for now. By default, the switcher excludes:
 
 ## Settings
 
-Use the menu-bar controls to manage Accessibility permission or select a different shortcut.
 The available presets are `Option-Tab`, `Command-Tab (Experimental)`, `Control-Tab`, `Control-Option-Tab`, and `Option-Backtick`.
 
-Mac Workspace Switcher registers ordinary shortcuts through macOS's public hotkey API. For `Command-Tab`, it uses a public Core Graphics event tap to intercept the chord before the built-in app switcher. Settings marks this shortcut as experimental because the path requires Accessibility permission and may vary across macOS releases. If the event tap cannot be created, Settings keeps the current shortcut and offers `Option-Tab` as the default fallback. The app does not use private APIs to disable macOS's built-in shortcut.
+Mac Workspace Switcher registers ordinary shortcuts through macOS's public hotkey API.
+For `Command-Tab`, it uses a public Core Graphics event tap to intercept the chord before the built-in app switcher.
+Settings marks this shortcut as experimental because the path requires Accessibility permission and may vary across macOS releases.
+If the event tap cannot be created, Settings keeps the current shortcut and offers `Option-Tab` as the default fallback.
+The app does not use private APIs to disable macOS's built-in shortcut.
 
 See [Carbon Hot Keys and Core Graphics Event Taps](https://notes.pslop.dev/83a2396a-5002-4769-8839-aa86bf22e18b) for a visual explanation of the two input paths and why Command-Tab remains experimental.
 
