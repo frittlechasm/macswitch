@@ -59,6 +59,11 @@ enum Diagnostics {
         )
     }
 
+    /// Records that the deferred check, not a modifier event, committed a hotkey session.
+    static func logDeferredModifierCommit() {
+        reliabilityLogger.log("Deferred modifier check committed session: activation modifier absent")
+    }
+
     /// Logs only numeric overlay timings as public values so persisted samples remain queryable.
     static func logOverlayLatency(
         totalMilliseconds: Double,

@@ -8,6 +8,10 @@ enum SwitcherSessionTrigger {
 }
 
 final class SwitcherSessionController {
+    /// Gives shortcut presses queued during inventory an opportunity to advance the selection before the
+    /// deferred modifier check commits it. A heuristic: it does not guarantee every queued event is drained.
+    private static let deferredModifierCheckDelay: TimeInterval = 0.05
+
     private let permissionService: AccessibilityPermissionService
     private let inventoryService: WindowInventoryService
     private let workspaceFilter: PublicWorkspaceFilter
@@ -16,6 +20,8 @@ final class SwitcherSessionController {
 
     private var candidates: [WindowCandidate] = []
     private var selectedIndex = 0
+    /// Advances when a session ends so its pending deferred modifier check cannot act on a later session.
+    private var sessionGeneration = 0
     private var localKeyMonitor: Any?
     private var globalKeyMonitor: Any?
     private var localModifierMonitor: Any?
@@ -41,6 +47,13 @@ final class SwitcherSessionController {
         activationModifierFlags: NSEvent.ModifierFlags = [],
         selectionOffset: Int = 1
     ) {
+        // Shortcut callbacks run on the main thread. Advancing an open session synchronously keeps a
+        // modifier release queued behind this press from committing the previous selection first.
+        if overlayController.isVisible {
+            moveSelection(by: selectionOffset)
+            return
+        }
+
         let requestedAt = ProcessInfo.processInfo.systemUptime
 
         DispatchQueue.main.async {
@@ -102,6 +115,35 @@ final class SwitcherSessionController {
             filteringMilliseconds: (filteringCompletedAt - filteringStartedAt) * millisecondsPerSecond,
             presentationMilliseconds: (presentationCompletedAt - presentationStartedAt) * millisecondsPerSecond
         )
+
+        scheduleDeferredModifierCheck()
+    }
+
+    /// Commits a hotkey session whose activation modifier is already up. The modifier monitors only observe
+    /// releases after installation, so a release during inventory would otherwise leave the overlay open.
+    private func scheduleDeferredModifierCheck() {
+        guard !activationModifierFlags.isEmpty else {
+            return
+        }
+
+        let generation = sessionGeneration
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.deferredModifierCheckDelay) { [weak self] in
+            guard let self, self.sessionGeneration == generation, self.isActivationModifierReleased() else {
+                return
+            }
+
+            Diagnostics.logDeferredModifierCommit()
+            self.activateSelection()
+        }
+    }
+
+    /// Reads the live session modifier state, independent of which modifier events the monitors received.
+    private func isActivationModifierReleased() -> Bool {
+        let liveFlags = NSEvent.ModifierFlags(
+            rawValue: UInt(CGEventSource.flagsState(.combinedSessionState).rawValue)
+        )
+        return !liveFlags.contains(activationModifierFlags)
     }
 
     /// Advances the selected candidate, wrapping around either end of the list.
@@ -135,6 +177,7 @@ final class SwitcherSessionController {
 
     /// Ends the active switcher session and removes event monitors installed for it.
     private func cancelSession() {
+        sessionGeneration += 1
         overlayController.hide()
         candidates = []
         selectedIndex = 0
